@@ -1884,23 +1884,30 @@
   </div>
 
   <div id="expiredState" style="display:none; margin-top:15px;">
-    <h3 style="color:red;">⚠️ Subscription Expired</h3>
+  <h3 style="color:red;">⚠️ Subscription Expired</h3>
 
-    <p>Please renew your portal access:</p>
+  <div class="bg-white p-4 rounded shadow mt-3">
+    <h3 class="text-lg font-bold">📦 Basic Plan</h3>
 
-    <div class="bank-box">
-      <p><strong>Bank Name:</strong> First Bank</p>
-      <p><strong>Account Name:</strong> School Portal Ltd</p>
-      <p><strong>Account Number:</strong> 1234567890</p>
-    </div>
+    <ul style="margin-top:10px;">
+      <li>✔ Manage Students</li>
+      <li>✔ Manage Results</li>
+      <li>✔ Unlimited Teachers</li>
+      <li>✔ Subscription</li>
+    </ul>
 
-    <button onclick="payNow()" class="bg-green-600 text-white px-4 py-2 rounded">
-  💳 Pay Now
-</button>
+    <p style="margin-top:10px;">
+      💰 ₦<span id="planAmount">0</span> / month
+    </p>
 
-<p id="paymentStatus" style="margin-top:10px; color:gray;"></p>
+    <button onclick="payNow()" class="bg-green-600 text-white px-4 py-2 rounded mt-2">
+      💳 Pay Now
+    </button>
   </div>
+
+  <p id="paymentStatus" style="margin-top:10px;"></p>
 </div>
+  </div>
 
 </section>
 
