@@ -1513,22 +1513,29 @@ async function loadSubscriptionUI() {
   }
 }
 
+async function loadPlanPrice() {
+  const { data: schoolId } =
+    await supabaseClient.rpc("current_user_school_id");
+
+  const { data: count } =
+    await supabaseClient.rpc("get_school_student_count", {
+      sid: schoolId
+    });
+
+  const total = (count || 0) * 100;
+
+  document.getElementById("planAmount").textContent =
+    total.toLocaleString();
+}
 
     async function payNow() {
   try {
     const statusEl = document.getElementById("paymentStatus");
     statusEl.textContent = "Initializing payment...";
 
-    // ✅ 1. Get school ID
-    const { data: schoolId, error: schoolError } =
+    const { data: schoolId } =
       await supabaseClient.rpc("current_user_school_id");
 
-    if (schoolError || !schoolId) {
-      statusEl.textContent = "Unable to get school ID";
-      return;
-    }
-
-    // ✅ 2. Get session ONCE
     const {
       data: { session }
     } = await supabaseClient.auth.getSession();
@@ -1541,19 +1548,17 @@ async function loadSubscriptionUI() {
       return;
     }
 
-    // ✅ 3. Call Edge Function WITH AUTH
     const res = await fetch(
       "https://irelkjvppoisvjpopdpb.supabase.co/functions/v1/initiate-paystack",
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
+          "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify({
           school_id: schoolId,
-          email,
-          amount: 1000000
+          email
         })
       }
     );
@@ -1561,27 +1566,21 @@ async function loadSubscriptionUI() {
     const data = await res.json();
 
     if (!res.ok) {
-      console.error(data);
       statusEl.textContent = data.error || "Payment failed";
       return;
     }
 
-    if (!data.authorization_url) {
-      statusEl.textContent = "Invalid payment response";
-      return;
-    }
-
-    // ✅ 4. Redirect
-    statusEl.textContent = "Redirecting...";
     window.location.href = data.authorization_url;
 
   } catch (err) {
     console.error(err);
-    document.getElementById("paymentStatus").textContent =
-      "Something went wrong";
   }
 }
 
+window.addEventListener("load", () => {
+  loadSubscriptionUI();
+  loadPlanPrice();
+});
 
 /* =======================
    RESULTS SECTION
