@@ -1513,7 +1513,8 @@ async function loadSubscriptionUI() {
   }
 }
 
-async function payNow() {
+
+    async function payNow() {
   try {
     const statusEl = document.getElementById("paymentStatus");
     statusEl.textContent = "Initializing payment...";
@@ -1523,35 +1524,36 @@ async function payNow() {
       await supabaseClient.rpc("current_user_school_id");
 
     if (schoolError || !schoolId) {
-      console.error(schoolError);
       statusEl.textContent = "Unable to get school ID";
       return;
     }
 
-    // ✅ 2. Get logged in user
+    // ✅ 2. Get session ONCE
     const {
       data: { session }
     } = await supabaseClient.auth.getSession();
 
+    const token = session?.access_token;
     const email = session?.user?.email;
 
-    if (!email) {
-      statusEl.textContent = "User email not found";
+    if (!token || !email) {
+      statusEl.textContent = "User not authenticated";
       return;
     }
 
-    // ✅ 3. Call Edge Function
+    // ✅ 3. Call Edge Function WITH AUTH
     const res = await fetch(
       "https://irelkjvppoisvjpopdpb.supabase.co/functions/v1/initiate-paystack",
       {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
         },
         body: JSON.stringify({
           school_id: schoolId,
-          email: email,
-          amount: 1000000 // ₦10,000
+          email,
+          amount: 1000000
         })
       }
     );
@@ -1560,7 +1562,7 @@ async function payNow() {
 
     if (!res.ok) {
       console.error(data);
-      statusEl.textContent = "Payment initialization failed";
+      statusEl.textContent = data.error || "Payment failed";
       return;
     }
 
@@ -1569,20 +1571,17 @@ async function payNow() {
       return;
     }
 
-    // ✅ 4. Redirect to Paystack
-    statusEl.textContent = "Redirecting to payment...";
+    // ✅ 4. Redirect
+    statusEl.textContent = "Redirecting...";
     window.location.href = data.authorization_url;
 
   } catch (err) {
-    console.error("Payment error:", err);
+    console.error(err);
     document.getElementById("paymentStatus").textContent =
       "Something went wrong";
   }
 }
 
-window.addEventListener("load", () => {
-  loadSubscriptionUI();
-});
 
 /* =======================
    RESULTS SECTION
