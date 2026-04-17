@@ -1997,8 +1997,15 @@
     <p><strong>Status:</strong> <span id="statusText"></span></p>
     <p><strong>Credits Left:</strong> <span id="daysLeft"></span></p>
 
+    <input 
+      type="number" 
+      id="amountInput" 
+      placeholder="Enter amount (₦)" 
+      class="border p-2 rounded mb-2"
+    />
+
     <button onclick="payNow()" class="bg-green-600 text-white px-4 py-2 rounded">
-      💳 Buy Credits (₦200 per result)
+      💳 Buy Credits
     </button>
 
     <p id="paymentStatus" style="margin-top:10px;"></p>
