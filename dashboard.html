@@ -1,0 +1,2011 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  
+  <script src="https://js.paystack.co/v1/inline.js"></script>
+  
+  <script defer src="dashboardScript.js"></script>
+  
+ <style>
+  :root {
+    --primary: #4f46e5;
+    --primary-light: #eef2ff;
+    --primary-hover: #4338ca;
+    --bg-body: #f1f5f9;
+    --navy: #0f172a;
+    --text-main: #334155;
+    --text-muted: #64748b;
+    --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  }
+
+  * {
+    box-sizing: border-box;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background: var(--bg-body);
+    color: var(--text-main);
+    line-height: 1.5;
+  }
+
+  h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.875rem;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 1.5rem;
+  }
+
+  h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--navy);
+    border-bottom: 2px solid var(--primary-light);
+    padding-bottom: 8px;
+    margin-bottom: 20px;
+  }
+
+  /* --- NAVBAR --- */
+  .navbar {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    background: #ffffff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 5%;
+    height: 70px;
+    z-index: 1000;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+  }
+
+  .logo {
+    font-size: 1.25rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* --- NAVIGATION LINKS --- */
+  .nav-links {
+    position: fixed;
+    top: 70px;
+    right: -280px;
+    width: 260px;
+    height: calc(100% - 70px);
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    padding: 20px 15px;
+    gap: 8px;
+    box-shadow: -4px 0 15px rgba(0,0,0,0.05);
+    transition: cubic-bezier(0.4, 0, 0.2, 1) 0.4s;
+    border-left: 1px solid #e2e8f0;
+  }
+
+  .nav-links.active { right: 0; }
+
+  .nav-links button {
+    background: transparent;
+    border: none;
+    text-align: left;
+    padding: 12px 16px;
+    font-size: 0.9rem;
+    color: var(--text-main);
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+
+  .nav-links button:hover {
+    background: var(--primary-light);
+    color: var(--primary);
+  }
+
+  /* --- SECTIONS & CARDS --- */
+  .section {
+    padding: 100px 5% 50px;
+    max-width: 1200px;
+    margin: 0 auto;
+    display: none;
+    animation: fadeIn 0.4s ease-out;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .section.active { display: block; }
+
+  .form-card {
+    background: #ffffff;
+    padding: 32px;
+    border-radius: 16px;
+    box-shadow: var(--card-shadow);
+    border: 1px solid #e2e8f0;
+  }
+  
+  /* --- DROPDOWN STYLES --- */
+.dropdown-btn {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.dropdown-container {
+  display: none; /* Hidden by default */
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 15px; /* Indent sub-items */
+  margin-bottom: 5px;
+  border-left: 2px solid #e2e8f0;
+  overflow: hidden;
+}
+
+.dropdown-container.show {
+  display: flex;
+}
+
+.chevron {
+  font-size: 0.7rem;
+  transition: transform 0.3s;
+}
+
+.chevron.rotate {
+  transform: rotate(180deg);
+}
+
+/* Style for sub-buttons to make them look nested */
+.dropdown-container button {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #64748b;
+  padding: 10px 16px;
+}
+  
+  /* --- FORMS --- */
+  .row {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 20px;
+  }
+
+  .row label {
+    flex: 1;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-main);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  input, select {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    color: var(--navy);
+    transition: all 0.2s;
+    background-color: #fcfcfd;
+  }
+
+  input:focus, select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+    background-color: #fff;
+  }
+
+  /* --- BUTTONS --- */
+  button.save-btn, button.action-btn, #resultForm button[type="submit"] {
+    background: var(--primary);
+    color: #fff;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  button.save-btn:hover {
+    background: var(--primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 12px -1px rgba(79, 70, 229, 0.3);
+  }
+
+  button.delete-btn {
+    background: #ef4444 !important;
+    box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2);
+  }
+
+  /* --- IMAGE UPLOAD --- */
+  .image-upload-container {
+    width: 120px;
+    height: 120px;
+    border: 2px dashed #cbd5e1;
+    border-radius: 20px;
+    margin-bottom: 20px;
+    transition: all 0.3s;
+    background: #fff;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .image-upload-container:hover {
+    border-color: var(--primary);
+    background: var(--primary-light);
+  }
+  
+  .card-avatar {
+  width: 50px;
+  height: 50px;
+  background-color: #64748b;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 20px;
+  border-radius: 50%;
+}
+
+.card-avatar-img {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+  /* --- HAMBURGER --- */
+  .hamburger {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    background: var(--primary-light);
+    border-radius: 10px;
+  }
+
+  .hamburger div {
+    width: 22px;
+    height: 2px;
+    background: var(--primary);
+    transition: 0.3s;
+  }
+
+  /* --- RESPONSIVE --- */
+  @media (max-width: 768px) {
+    .row { flex-direction: column; gap: 15px; }
+    .navbar { padding: 0 20px; }
+    .form-card { padding: 20px; }
+  }
+
+  /* Modal Styling */
+  #editStudentModal > div, #editResultModal > div {
+    border-radius: 20px;
+    padding: 40px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  }
+  
+  /* --- DYNAMIC CARD DESIGN --- */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.data-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+  overflow: hidden;
+}
+
+.data-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.1);
+  border-color: var(--primary);
+}
+
+.data-card-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 12px;
+}
+
+.card-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  background: var(--primary-light);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.2rem;
+  object-fit: cover;
+}
+
+.card-info h4 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--navy);
+  font-weight: 700;
+}
+
+.card-info p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.card-body {
+  font-size: 0.85rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.card-label {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.card-value {
+  color: var(--navy);
+  font-weight: 600;
+  text-align: right;
+}
+
+.card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.card-actions button {
+  flex: 1;
+  padding: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn-edit {
+  background: var(--primary-light);
+  color: var(--primary);
+  border: 1px solid transparent;
+}
+
+.btn-edit:hover {
+  background: var(--primary);
+  color: white;
+}
+
+.btn-delete {
+  background: #fef2f2;
+  color: #ef4444;
+  border: 1px solid transparent;
+}
+
+.btn-delete:hover {
+  background: #ef4444;
+  color: white;
+}
+
+/* PDF-like Result Preview */
+.result-preview-container {
+  background: white;
+  padding: 40px;
+  border: 1px solid #e2e8f0;
+  max-width: 800px;
+  margin: 0 auto;
+  box-shadow: 0 0 20px rgba(0,0,0,0.05);
+  font-family: 'serif'; /* Makes it look more official */
+}
+
+.report-header {
+  text-align: center;
+  border-bottom: 2px solid var(--navy);
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+}
+
+.report-header h2 { font-size: 24px; color: var(--navy); text-transform: uppercase; }
+
+.student-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.result-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.result-table th {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  padding: 10px;
+  text-align: left;
+}
+
+.result-table td {
+  border: 1px solid #cbd5e1;
+  padding: 10px;
+}
+
+.download-btn {
+  background: #059669 !important; /* Green for download */
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+@media print {
+  .no-print { display: none !important; }
+}
+
+.report-card-wrap {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  max-width: 800px;
+  margin: auto;
+}
+
+/* Fancy Gradient Spinner */
+.fancy-loader {
+  width: 3rem;  /* 48px */
+  height: 3rem;
+  border-radius: 50%;
+  background: conic-gradient(#3b82f6 0% 25%, #e5e7eb 25% 100%);
+  animation: spin-sweep 1s linear infinite;
+}
+
+@keyframes spin-sweep {
+  to { transform: rotate(360deg); }
+}
+
+/* Overlay hidden toggle */
+.hidden { display: none; }
+
+/* ===============================
+   STUDENT SELECT COMPONENT
+================================ */
+
+/* Wrapper so dropdown positions correctly */
+.student-select {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  margin-top: 6px;
+}
+
+/* Selected student display */
+.student-selected {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid #dcdcdc;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  font-size: 14px;
+  color: #333;
+  transition: border-color 0.2s ease;
+}
+
+/* Left side content (avatar + text) */
+.student-placeholder {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Dropdown arrow */
+.student-arrow {
+  font-size: 12px;
+  color: #777;
+}
+
+/* Hover + focus feel like input */
+.student-selected:hover {
+  border-color: #999;
+}
+
+/* Dropdown container */
+.student-dropdown {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+
+  width: 100%;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+
+  margin-top: 4px;
+
+  max-height: 260px;
+  overflow-y: auto;
+
+  box-shadow: 0 6px 14px rgba(0,0,0,0.08);
+
+  z-index: 200;
+}
+
+/* Show dropdown */
+.student-dropdown.show {
+  display: block;
+}
+
+/* Individual student row */
+.student-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  padding: 10px 12px;
+  cursor: pointer;
+
+  font-size: 14px;
+  color: #333;
+
+  transition: background 0.15s ease;
+}
+
+/* Hover effect */
+.student-option:hover {
+  background: #f5f5f5;
+}
+
+/* Avatar image */
+.student-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* Avatar placeholder */
+.student-avatar-placeholder {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+
+  background: #4a5568;
+  color: #fff;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Scrollbar cleanup */
+.student-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+
+.student-dropdown::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+/* Mobile friendliness */
+@media (max-width: 768px) {
+  .student-select {
+    max-width: 100%;
+  }
+
+  .student-selected {
+    font-size: 15px;
+  }
+
+  .student-option {
+    padding: 12px;
+  }
+}
+
+
+.dropdown-container {
+  display: none;
+  flex-direction: column;
+}
+
+.dropdown-container.active {
+  display: flex;
+}
+
+.nav-item {
+  width: 100%;
+}
+
+.sub-card {
+  background: white;
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  margin-bottom: 20px;
+  font-family: Arial;
+}
+
+.bank-box {
+  border: 1px solid #ccc;
+  padding: 10px;
+  margin-top: 10px;
+  border-radius: 6px;
+}
+
+</style>
+
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="logo">Dashboard</div>
+
+  <div class="hamburger" id="hamburger">
+    <div></div>
+    <div></div>
+    <div></div>
+  </div>
+
+  <div class="nav-links" id="navLinks">
+
+    <!-- SHARED -->
+    <button onclick="showSection('overview')" data-role="admin,teacher">
+      Overview
+    </button>
+
+    <!-- ========================= -->
+    <!-- STUDENTS (BOTH, BUT LIMITED BY RLS) -->
+    <!-- ========================= -->
+    <div class="nav-item" data-role="admin,teacher">
+      <button class="dropdown-btn" onclick="toggleDropdown(this, 'studentMenu')">
+        Students <span class="chevron">▼</span>
+      </button>
+      <div id="studentMenu" class="dropdown-container">
+
+        <!-- Admin only -->
+        <button onclick="showSection('register')" data-role="admin">
+          Register Student
+        </button>
+
+        <!-- Both -->
+        <button onclick="showSection('manage')" data-role="admin,teacher">
+          Manage Students
+        </button>
+
+        <!-- Admin only -->
+        <button onclick="showSection('transfer')" data-role="admin">
+          Transfer Students
+        </button>
+
+      </div>
+    </div>
+
+    <!-- ========================= -->
+    <!-- RESULTS -->
+    <!-- ========================= -->
+    <div class="nav-item" data-role="admin,teacher">
+      <button class="dropdown-btn" onclick="toggleDropdown(this, 'resultsMenu')">
+        Results <span class="chevron">▼</span>
+      </button>
+      <div id="resultsMenu" class="dropdown-container">
+
+        <!-- Both -->
+        <button onclick="showSection('results')" data-role="admin,teacher">
+          Add Results
+        </button>
+
+        <!-- Both -->
+        <button onclick="showSection('manageResults')" data-role="admin,teacher">
+          Manage Results
+        </button>
+
+      </div>
+    </div>
+
+    <!-- ========================= -->
+    <!-- TEACHERS (ADMIN ONLY) -->
+    <!-- ========================= -->
+    <div class="nav-item" data-role="admin">
+      <button class="dropdown-btn" onclick="toggleDropdown(this, 'teachersMenu')">
+        Teachers <span class="chevron">▼</span>
+      </button>
+      <div id="teachersMenu" class="dropdown-container">
+        <button onclick="showSection('addTeacher')">Add Teachers</button>
+        <button onclick="showSection('manageTeacher')">Manage Teachers</button>
+      </div>
+    </div>
+
+    <!-- ========================= -->
+    <!-- ADMIN ONLY SECTIONS -->
+    <!-- ========================= -->
+    <button onclick="showSection('addSubjects')" data-role="admin">
+      Subjects
+    </button>
+
+    <button onclick="showSection('addClasses')" data-role="admin">
+      Classes
+    </button>
+
+    <button onclick="showSection('feeTracking')" data-role="admin">
+      Fees Tracking
+    </button>
+
+    <!-- ========================= -->
+    <!-- LOGOUT (SHARED) -->
+    <!-- ========================= -->
+    <button 
+      id="logoutBtn" 
+      class="bg-red-600 text-white px-4 py-2 rounded-lg mt-4"
+      data-role="admin,teacher"
+    >
+      Logout
+    </button>
+
+  </div>
+</nav>
+
+<!-- OVERVIEW (SHARED DASHBOARD) -->
+<section id="overview" class="section active">
+
+  <h1>Dashboard Overview</h1>
+
+  <!-- ========================= -->
+  <!-- ADMIN PROFILE -->
+  <!-- ========================= -->
+  <div class="data-card mb-6" data-role="admin">
+    <h3>Admin Profile</h3>
+    <p class="text-sm text-slate-500">Logged in as</p>
+    <p id="adminName" class="text-lg font-semibold mt-1">—</p>
+    <p id="adminRole" class="text-sm text-slate-500 mt-1">Role: —</p>
+  </div>
+
+  <!-- ========================= -->
+  <!-- TEACHER PROFILE -->
+  <!-- ========================= -->
+  <div class="data-card mb-6" data-role="teacher">
+    <h3>Teacher Profile</h3>
+    <p class="text-sm text-slate-500">Logged in as</p>
+    <p id="teacherName" class="text-lg font-semibold mt-1">—</p>
+    <p id="teacherIdDisplay" class="text-sm text-slate-500 mt-1">ID: —</p>
+
+    <div class="mt-3 text-sm text-slate-600">
+      <p>Classes Assigned: <span id="assignedClassesCount">0</span></p>
+      <p>Subjects: <span id="subjectsCount">0</span></p>
+    </div>
+  </div>
+
+  <!-- ========================= -->
+  <!-- STATS -->
+  <!-- ========================= -->
+  <div class="grid">
+
+    <!-- Admin Only -->
+    <div class="data-card" data-role="admin">
+      <h3>Total Teachers</h3>
+      <p class="text-3xl font-bold mt-2" id="totalTeachers">0</p>
+      <p class="text-sm text-slate-500 mt-1">Registered in system</p>
+    </div>
+
+    <!-- Shared (Admin + Teacher) -->
+    <div class="data-card" data-role="admin,teacher">
+      <h3>Total Students</h3>
+      <p class="text-3xl font-bold mt-2" id="totalStudentsCount">0</p>
+      <p class="text-sm text-slate-500 mt-1">Accessible students</p>
+    </div>
+
+  </div>
+
+</section>
+
+<!-- REGISTER STUDENT -->
+<section id="register" class="section active" data-role="admin">
+  
+  <!-- <div class="flex flex-col items-center gap-2">
+        <div class="image-upload-container" onclick="document.getElementById('studentPhoto').click()">
+          <div class="text-center text-[#64748b] text-[10px] font-bold" id="placeholder-text">
+            <i data-lucide="camera" class="w-8 h-8 mx-auto mb-1 opacity-50"></i>
+            PHOTO
+          </div>
+          <img id="photo-preview" src="" alt="Preview" class="hidden">
+        </div>
+        <input type="file" id="studentPhoto" accept="image/*" class="hidden" onchange="previewImage(this)">
+      </div>
+    </div> -->
+    
+  <div class="flex flex-col items-center gap-2">
+
+  <div class="image-upload-container cursor-pointer"
+       id="studentPhotoTrigger">
+
+    <div id="placeholder-student"
+         class="text-center text-[#64748b] text-[10px] font-bold">
+
+      <i data-lucide="camera"
+         class="w-8 h-8 mx-auto mb-1 opacity-50"></i>
+      PHOTO
+    </div>
+
+    <img id="preview-student"
+         class="hidden"
+         style="height:80px;width:80px;object-fit:cover;border-radius:8px;" />
+
+  </div>
+
+  <input type="file"
+         id="studentPhoto"
+         accept="image/*"
+         class="hidden">
+
+</div>
+
+  <h1>Register Student</h1>
+  <div class="form-card">
+    <form id="registrationForm">
+
+      <!-- Row 1 -->
+      <div class="row">
+        <label>Full Name 
+          <input type="text" name="fullName" required>
+        </label>
+        <label>Student ID 
+          <input type="text" name="studentId" required>
+        </label>
+      </div>
+
+      <!-- Row 2 -->
+      <div class="row">
+        <label>Date of Birth 
+          <input type="date" name="dateOfBirth" required>
+        </label>
+        <label>Sex
+          <select name="sex" required>
+            <option value="">--Select--</option>
+            <option>Male</option>
+            <option>Female</option>
+          </select>
+        </label>
+      </div>
+
+      <!-- Row 3 -->
+      <div class="row">
+        <label>State of Origin 
+          <input type="text" name="stateOfOrigin">
+        </label>
+        <label>Nationality 
+          <input type="text" name="nationality">
+        </label>
+      </div>
+
+      <!-- Row 9 -->
+      <div class="row">
+        <label>LGA 
+          <input type="text" name="lga">
+        </label>
+        <label>Student Address
+          <input type="text" name="studentAddress">
+        </label>
+      </div>
+
+
+      <!-- Row 4 -->
+   <div class="row">
+  <label>Class Admitted Into</label>
+  <!-- Hidden select used by JS -->
+  <select name="admissionClass" id="admissionClassSelect" required style="display:none;">
+    <option value="">--Select Class--</option>
+  </select>
+
+  <div class="student-select">
+    <div id="admissionClassSelected" class="student-selected"
+         onclick="toggleStudentDropdown('admissionClassDropdown')">
+      <div class="student-placeholder">
+        <span id="admissionClassSelectedText">--Select Class--</span>
+      </div>
+      <span class="student-arrow">▼</span>
+    </div>
+    <div id="admissionClassDropdown" class="student-dropdown"></div>
+  </div>
+
+  <label>Current Class</label>
+  <!-- Hidden select used by JS -->
+  <select name="studentClass" id="currentClassSelect" required style="display:none;">
+    <option value="">--Select Class--</option>
+  </select>
+
+  <div class="student-select">
+    <div id="currentClassSelected" class="student-selected"
+         onclick="toggleStudentDropdown('currentClassDropdown')">
+      <div class="student-placeholder">
+        <span id="currentClassSelectedText">--Select Class--</span>
+      </div>
+      <span class="student-arrow">▼</span>
+    </div>
+    <div id="currentClassDropdown" class="student-dropdown"></div>
+  </div>
+</div>
+
+      <!-- Row 5 -->
+      <div class="row">
+        <label>Parent's Name 
+          <input type="text" name="parentName">
+        </label>
+        <label>Parent Phone 
+          <input type="tel" name="parentPhone">
+        </label>
+      </div>
+
+      <!-- Row 6 -->
+      <div class="row">
+        <label>Parent Email 
+          <input type="email" name="parentEmail">
+        </label>
+        <label>Parent Address 
+          <input type="text" name="parentAddress">
+        </label>
+      </div>
+
+      <!-- Row 7 -->
+      <div class="row">
+        <label>Guardian Name 
+          <input type="text" name="guardianName">
+        </label>
+        <label>Guardian Phone 
+          <input type="tel" name="guardianPhone">
+        </label>
+      </div>
+
+      <!-- Row 8 -->
+      <div class="row">
+        <label>Guardian Email 
+          <input type="email" name="guardianEmail">
+        </label>
+        <label>Guardian Address 
+          <input type="text" name="guardianAddress">
+        </label>
+      </div>
+
+      <!-- MINI SIBLINGS SECTION -->
+      <h3 style="margin-top:20px;">Any Siblings?</h3>
+      <div class="row">
+        <label>Sibling Name
+          <input type="text" name="siblingName">
+        </label>
+
+       <label>Sibling Class</label>
+<div class="student-select">
+  <div id="siblingClassSelected" class="student-selected" onclick="toggleStudentDropdown('siblingClassDropdown')">
+    <div class="student-placeholder">
+      <span id="siblingClassSelectedText">--Select Class--</span>
+    </div>
+    <span class="student-arrow">▼</span>
+  </div>
+  <div id="siblingClassDropdown" class="student-dropdown"></div>
+  <!-- Hidden select to hold the value -->
+  <select id="siblingClassSelect" name="siblingClass" style="display:none;"></select>
+</div>
+
+        <label>Sibling Sex
+          <select name="siblingGender">
+            <option value="">--Select--</option>
+            <option>Male</option>
+            <option>Female</option>
+          </select>
+        </label>
+      </div>
+
+      <button class="save-btn" type="submit">Register Student</button>
+    </form>
+  </div>
+</section>
+
+<!-- Fancy Gradient Spinner -->
+<div id="loading-spinner" class="hidden fixed inset-0 flex flex-col items-center justify-center bg-black/50 z-50">
+  <div class="fancy-loader"></div>
+  <div class="mt-3 text-white text-sm">Uploading... Please wait</div>
+</div>
+
+
+<!-- MANAGE STUDENTS -->
+<section id="manage" class="section" data-role="teacher,admin">
+  <h1>Manage Students</h1>
+  <div class="form-card">
+
+<!-- ===========================
+     FILTER STUDENTS BY CLASS
+=========================== -->
+<div class="row">
+  <label>Filter by Class</label>
+
+  <!-- Reusable dropdown container -->
+  <div class="student-select">
+    <div id="studentClassSelected" class="student-selected"
+         onclick="toggleStudentDropdown('studentClassDropdown')">
+      <div class="student-placeholder">
+        <span id="studentClassSelectedText">All</span>
+      </div>
+      <span class="student-arrow">▼</span>
+    </div>
+    <div id="studentClassDropdown" class="student-dropdown"></div>
+  </div>
+
+  <!-- Hidden select used by forms / JS -->
+  <select id="studentClassFilter" style="display:none;">
+    <option value="all">All</option>
+  </select>
+</div>
+
+<!-- STUDENT COUNT -->
+<div class="stats-bar">
+  <span>Students in view: </span>
+  <strong id="studentsPageCount">0</strong>
+</div>
+    <!-- Container to display student cards -->
+    <div id="studentsContainer" class="grid gap-4 mt-4"></div>
+  </div>
+</section>
+
+  <!-- ADD TEACHER -->
+  <section id="addTeacher" class="section" data-role="admin">
+    <h1>Add Teacher</h1>
+    
+  <div class="flex flex-col items-center gap-2 mb-4">
+
+  <!-- CLICK TARGET -->
+  <div id="teacherPhotoTrigger"
+       class="image-upload-container cursor-pointer">
+
+    <!-- PLACEHOLDER -->
+    <div id="placeholder-teacher"
+         class="text-center text-[#64748b] text-[10px] font-bold">
+
+      <i data-lucide="camera"
+         class="w-8 h-8 mx-auto mb-1 opacity-50"></i>
+      PHOTO
+    </div>
+
+    <!-- PREVIEW -->
+    <img id="preview-teacher"
+         class="hidden"
+         style="height:80px;width:80px;object-fit:cover;border-radius:8px;" />
+
+  </div>
+
+  <!-- INPUT -->
+  <input type="file"
+         id="teacherPhoto"
+         accept="image/*"
+         class="hidden" />
+
+</div>
+
+    <div class="form-card">
+      <form id="teacherForm">
+        <div class="row">
+          <label>Teacher ID <input type="text" name="teacherId" required></label>
+          <label>Full Name <input type="text" name="fullName" required></label>
+          <label>Phone <input type="tel" name="phone" required></label>
+        </div>
+        
+          <div class="row">
+  <label>Email <input type="email" name="email" required></label>
+  <label>Password <input type="password" name="password" required></label>
+</div>
+          
+           <div class="row">
+          <label>Qualification <input type="text" name="qualification"></label>
+        </div>
+        <div class="row">
+          <label>Subject Specialization <input type="text" name="subjectSpecialization" required></label>
+          <label>Class Teacher <input type="text" name="classTeacher"></label>
+        </div>
+        <div class="row">
+          <label>Years of Experience <input type="number" name="yearsOfExperience"></label>
+          <label>Joining Date <input type="date" name="joiningDate"></label>
+        </div>
+        <button class="save-btn" type="submit">Add Teacher</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- MANAGE TEACHERS -->
+<section id="manageTeacher" class="section" data-role="admin">
+  <h1>Manage Teachers</h1>
+  <div id="teachersContainer" class="grid gap-4 mt-4">
+    <!-- Teacher cards will be dynamically generated here -->
+  </div>
+</section>
+
+
+<!-- ADD RESULTS -->
+<section id="results" class="section" data-role="teacher,admin">
+  <h1>Add Result</h1>
+  <div class="form-card">
+    <form id="resultForm">
+      <!-- Step 1: Select Class -->
+     <label>Class:</label>
+<div class="student-select">
+  <div id="resultClassSelected" class="student-selected" onclick="toggleStudentDropdown('resultClassDropdown')">
+    <div class="student-placeholder">
+      <span id="resultClassSelectedText">Select class</span>
+    </div>
+    <span class="student-arrow">▼</span>
+  </div>
+  <div id="resultClassDropdown" class="student-dropdown"></div>
+  <!-- Hidden select to store the value -->
+  <select id="resultClass" name="resultClass" style="display:none;"></select>
+</div>
+
+      <!-- Step 2: Select Student -->
+      <label for="resultStudent">Student:</label>
+
+      <select id="resultStudent" style="display:none;">
+      <option value="">Select student</option>
+      </select>
+
+<div class="student-select">
+
+  <div id="studentSelected" class="student-selected" onclick="toggleStudentDropdown('studentDropdown')">
+    
+    <div class="student-placeholder">
+      <span id="studentSelectedText">Select student</span>
+    </div>
+
+    <span class="student-arrow">▼</span>
+
+  </div>
+
+  <div id="studentDropdown" class="student-dropdown"></div>
+
+</div>
+      
+      <!-- Step 3: Term, Academic Session, Gender -->
+      <label>Term:
+        <select id="resultTerm">
+          <option value="">Select Term</option>
+          <option value="First Term">First Term</option>
+          <option value="Second Term">Second Term</option>
+          <option value="Third Term">Third Term</option>
+        </select>
+      </label>
+
+      <label>Academic Session:
+        <input type="text" id="resultSession" placeholder="e.g., 2025/2026">
+      </label>
+
+      <label>Gender:
+        <select id="studentGender">
+          <option value="">Select Gender</option>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+        </select>
+      </label>
+
+      <!-- Step 4: Subjects container -->
+      <div id="resultSubjects"></div>
+
+    
+    <!-- Psychomotor Domain -->
+    <div>
+      <h3 class="font-semibold mb-2">Psychomotor Domain</h3>
+      <table class="w-full border-collapse border border-black text-center text-xs">
+        <thead>
+          <tr class="bg-gray-200">
+            <th class="border border-black px-2 py-1">Activity</th>
+            <th class="border border-black px-2 py-1">100</th>
+            <th class="border border-black px-2 py-1">85</th>
+            <th class="border border-black px-2 py-1">75</th>
+            <th class="border border-black px-2 py-1">65</th>
+            <th class="border border-black px-2 py-1">55</th>
+          </tr>
+        </thead>
+        <tbody id="psychomotorBody">
+          <tr>
+            <td class="text-left px-2 py-1">Handwriting</td>
+            <td><input type="radio" name="handwriting" value="100"></td>
+            <td><input type="radio" name="handwriting" value="85"></td>
+            <td><input type="radio" name="handwriting" value="75"></td>
+            <td><input type="radio" name="handwriting" value="65"></td>
+            <td><input type="radio" name="handwriting" value="55"></td>
+          </tr>
+          <tr>
+            <td class="text-left px-2 py-1">Sports</td>
+            <td><input type="radio" name="sports" value="100"></td>
+            <td><input type="radio" name="sports" value="85"></td>
+            <td><input type="radio" name="sports" value="75"></td>
+            <td><input type="radio" name="sports" value="65"></td>
+            <td><input type="radio" name="sports" value="55"></td>
+          </tr>
+          <tr>
+            <td class="text-left px-2 py-1">Games</td>
+            <td><input type="radio" name="games" value="100"></td>
+            <td><input type="radio" name="games" value="85"></td>
+            <td><input type="radio" name="games" value="75"></td>
+            <td><input type="radio" name="games" value="65"></td>
+            <td><input type="radio" name="games" value="55"></td>
+          </tr>
+          <tr>
+            <td class="text-left px-2 py-1">Crafts</td>
+            <td><input type="radio" name="crafts" value="100"></td>
+            <td><input type="radio" name="attentiveness" value="85"></td>
+            <td><input type="radio" name="crafts" value="75"></td>
+            <td><input type="radio" name="crafts" value="65"></td>
+            <td><input type="radio" name="crafts" value="55"></td>
+          </tr>
+          <tr>
+            <td class="text-left px-2 py-1">Handling of Tools</td>
+            <td><input type="radio" name="handling" value="100"></td>
+            <td><input type="radio" name="handling" value="85"></td>
+            <td><input type="radio" name="handling" value="75"></td>
+            <td><input type="radio" name="handling" value="65"></td>
+            <td><input type="radio" name="handling" value="55"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Affective Domain -->
+    <div>
+      <h3 class="font-semibold mb-2">Affective Domain</h3>
+      <table class="w-full border-collapse border border-black text-center text-xs">
+        <thead>
+          <tr class="bg-gray-200">
+            <th class="border border-black px-2 py-1">Trait</th>
+            <th class="border border-black px-2 py-1">100</th>
+            <th class="border border-black px-2 py-1">85</th>
+            <th class="border border-black px-2 py-1">75</th>
+            <th class="border border-black px-2 py-1">65</th>
+            <th class="border border-black px-2 py-1">55</th>
+          </tr>
+        </thead>
+        <tbody id="affectiveBody">
+          <tr>
+            <td class="text-left px-2 py-1">Politeness</td>
+            <td><input type="radio" name="politeness" value="100"></td>
+            <td><input type="radio" name="politeness" value="85"></td>
+            <td><input type="radio" name="politeness" value="75"></td>
+            <td><input type="radio" name="politeness" value="65"></td>
+            <td><input type="radio" name="politeness" value="55"></td>
+          </tr>
+          <tr>
+            <td class="text-left px-2 py-1">Responsibility</td>
+            <td><input type="radio" name="responsibility" value="100"></td>
+            <td><input type="radio" name="responsibility" value="85"></td>
+            <td><input type="radio" name="responsibility" value="75"></td>
+            <td><input type="radio" name="responsibility" value="65"></td>
+            <td><input type="radio" name="responsibility" value="55"></td>
+          </tr>
+          <tr>
+            <td class="text-left px-2 py-1">Leadership</td>
+            <td><input type="radio" name="leadership" value="100"></td>
+            <td><input type="radio" name="leadership" value="85"></td>
+            <td><input type="radio" name="leadership" value="75"></td>
+            <td><input type="radio" name="leadership" value="65"></td>
+            <td><input type="radio" name="leadership" value="55"></td>
+          </tr>
+          <tr>
+            <td class="text-left px-2 py-1">Honesty</td>
+            <td><input type="radio" name="honesty" value="100"></td>
+            <td><input type="radio" name="honesty" value="85"></td>
+            <td><input type="radio" name="leadership" value="75"></td>
+            <td><input type="radio" name="honesty" value="65"></td>
+            <td><input type="radio" name="honesty" value="55"></td>
+          </tr>
+          <tr>
+            <td class="text-left px-2 py-1">Creativity</td>
+            <td><input type="radio" name="creativity" value="100"></td>
+            <td><input type="radio" name="creativity" value="85"></td>
+            <td><input type="radio" name="creativity" value="75"></td>
+            <td><input type="radio" name="creativity" value="65"></td>
+            <td><input type="radio" name="creativity" value="55"></td>
+          </tr>
+          <tr>
+            <td class="text-left px-2 py-1">Punctuality</td>
+            <td><input type="radio" name="punctuality" value="100"></td>
+            <td><input type="radio" name="punctuality" value="85"></td>
+            <td><input type="radio" name="punctuality" value="75"></td>
+            <td><input type="radio" name="punctuality" value="65"></td>
+            <td><input type="radio" name="punctuality" value="55"></td>
+          </tr>
+          <tr>
+            <td class="text-left px-2 py-1">Obedience</td>
+            <td><input type="radio" name="obedience" value="100"></td>
+            <td><input type="radio" name="obedience" value="85"></td>
+            <td><input type="radio" name="obedience" value="75"></td>
+            <td><input type="radio" name="obedience" value="65"></td>
+            <td><input type="radio" name="obedience" value="55"></td>
+          </tr>
+          <tr>
+            <td class="text-left px-2 py-1">Neatness</td>
+            <td><input type="radio" name="neatness" value="100"></td>
+            <td><input type="radio" name="neatness" value="85"></td>
+            <td><input type="radio" name="neatness" value="75"></td>
+            <td><input type="radio" name="neatness" value="65"></td>
+            <td><input type="radio" name="neatness" value="55"></td>
+          </tr>
+          <tr>
+            <td class="text-left px-2 py-1">Sociability</td>
+            <td><input type="radio" name="sociability" value="100"></td>
+            <td><input type="radio" name="sociability" value="85"></td>
+            <td><input type="radio" name="sociability" value="75"></td>
+            <td><input type="radio" name="sociability" value="65"></td>
+            <td><input type="radio" name="sociability" value="55"></td>
+          </tr>
+        </tbody>
+        </tbody>
+        </tbody>
+        </tbody>
+        </tbody>
+        </tbody>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Comments Section -->
+    <div class="space-y-3">
+      <label class="block">
+        Teacher Comment
+        <textarea id="teacherComment" rows="2" class="w-full border p-2" placeholder="Teacher's comment here..."></textarea>
+      </label>
+      <label class="block">
+        Headmaster Comment
+        <textarea id="headmasterComment" rows="2" class="w-full border p-2" placeholder="Headmaster's comment here..."></textarea>
+      </label>
+    </div>
+    
+    <!-- Attendance & Duration Section -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+
+  <!-- Attendance -->
+  <div class="border p-4 rounded">
+    <h3 class="font-semibold mb-3">Attendance</h3>
+
+    <div class="grid grid-cols-3 gap-3">
+      <div>
+        <label class="block text-sm">Days School Opened</label>
+        <input type="number" id="daysOpened" class="input" min="0" required>
+      </div>
+
+      <div>
+        <label class="block text-sm">Days Present</label>
+        <input type="number" id="daysPresent" class="input" min="0" required>
+      </div>
+
+      <div>
+        <label class="block text-sm">Days Absent</label>
+        <input type="number" id="daysAbsent" class="input" min="0" required>
+      </div>
+    </div>
+  </div>
+
+  <!-- Term Duration -->
+  <div class="border p-4 rounded">
+    <h3 class="font-semibold mb-3">Term Duration</h3>
+
+    <div class="grid grid-cols-1 gap-3">
+      <div>
+        <label class="block text-sm">Term Begins</label>
+        <input type="date" id="termBegins" class="input" required>
+      </div>
+
+      <div>
+        <label class="block text-sm">Term Ends</label>
+        <input type="date" id="termEnds" class="input" required>
+      </div>
+
+      <div>
+        <label class="block text-sm">Next Term Begins</label>
+        <input type="date" id="nextTermBegins" class="input" required>
+      </div>
+    </div>
+  </div>
+  
+</div>
+    
+      <!-- Step 5: Submit results -->
+      <button type="submit">Save Result</button>
+    </form>
+  </div>
+</section>
+
+<!-- Manage Results -->
+<section id="manageResults" class="section" data-role="teacher,admin">
+  <h1>Manage Results</h1>
+
+  <!-- CLASS -->
+ <label>Select Class</label>
+<div class="student-select">
+  <div id="manageResultClassSelected" class="student-selected" 
+       onclick="toggleStudentDropdown('manageResultClassDropdown')">
+    <div class="student-placeholder">
+      <span id="manageResultClassSelectedText">--Select Class--</span>
+    </div>
+    <span class="student-arrow">▼</span>
+  </div>
+
+  <div id="manageResultClassDropdown" class="student-dropdown"></div>
+</div>
+
+<select id="manageResultClass" style="display:none;">
+  <option value="">--Select Class--</option>
+</select>
+
+  <!-- STUDENT (REUSABLE DROPDOWN) -->
+  <label>Select Student</label>
+
+  <!-- Hidden select used for form logic -->
+  <select id="manageStudent" style="display:none">
+    <option value="">Select student</option>
+  </select>
+
+  <div class="student-select">
+    <div id="manageStudentSelected" class="student-selected" onclick="toggleManageStudentDropdown()">
+      <div class="student-placeholder">
+        <span id="manageStudentText">Select student</span>
+      </div>
+      <span class="student-arrow">▼</span>
+    </div>
+    <div id="manageStudentDropdown" class="student-dropdown"></div>
+  </div>
+
+  <!-- TERM -->
+  <label>Select Term</label>
+  <select id="manageTerm">
+    <option value="">All Terms</option>
+    <option>First Term</option>
+    <option>Second Term</option>
+    <option>Third Term</option>
+  </select>
+
+  <!-- SESSION -->
+  <label>Select Session</label>
+  <input id="manageSession" placeholder="e.g. 2024/2025" />
+
+<div class="stats-bar">
+  <span>Results in view: </span>
+  <strong id="resultsPageCount">0</strong>
+</div>
+
+  <div id="manageStudentContainer" class="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+</section>
+
+  <div id="editResultModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50 p-4">
+    <div class="bg-white p-6 rounded-3xl w-full max-w-2xl relative max-h-[90vh] overflow-y-auto shadow-2xl">
+      <form id="editResultForm">
+        <div id="editResultSubjects"></div>
+        </form>
+    </div>
+  </div>
+</section>
+
+<!-- TRANSFER STUDENTS -->
+<section id="transfer" class="section" data-role="teacher,admin">
+  <h1>Transfer Students</h1>
+  <div class="form-card">
+    <form id="transferForm">
+
+      <div class="row">
+       <label>Select Class</label>
+<div class="student-select">
+  <div id="transferClassSelected" class="student-selected" 
+       onclick="toggleStudentDropdown('transferClassDropdown')">
+    <div class="student-placeholder">
+      <span id="transferClassSelectedText">--Select Class--</span>
+    </div>
+    <span class="student-arrow">▼</span>
+  </div>
+
+  <div id="transferClassDropdown" class="student-dropdown"></div>
+</div>
+
+<select id="transferClass" required style="display:none;">
+  <option value="">--Select Class--</option>
+</select>
+        
+        <label for="transferStudent">Select Student</label>
+
+<!-- Hidden select used by JS + form -->
+<select id="transferStudent" required style="display:none;">
+  <option value="">--Select Student--</option>
+</select>
+
+<div class="student-select">
+
+  <div id="transferStudentSelected" class="student-selected" onclick="toggleStudentDropdown('transferStudentDropdown')">
+    <div class="student-placeholder">
+      <span id="transferStudentText">--Select Student--</span>
+    </div>
+
+    <span class="student-arrow">▼</span>
+  </div>
+
+  <div id="transferStudentDropdown" class="student-dropdown"></div>
+
+</div>
+        
+        
+      <div class="row">
+       <label>New Class</label>
+<div class="student-select">
+  <div id="newClassSelected" class="student-selected" 
+       onclick="toggleStudentDropdown('newClassDropdown')">
+    <div class="student-placeholder">
+      <span id="newClassSelectedText">--Select New Class--</span>
+    </div>
+    <span class="student-arrow">▼</span>
+  </div>
+
+  <div id="newClassDropdown" class="student-dropdown"></div>
+</div>
+
+<select id="newClass" required style="display:none;">
+  <option value="">--Select New Class--</option>
+</select>
+      </div>
+
+      <button class="save-btn" type="submit">Transfer</button>
+    </form>
+  </div>
+</section>
+
+<!-- EDIT STUDENT MODAL -->
+ <div id="editStudentModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+  <div class="bg-white p-6 rounded-lg w-full max-w-2xl relative max-h-[90vh] overflow-y-auto">
+    
+<div class="flex flex-col items-center gap-2 mb-4">
+
+  <div class="image-upload-container cursor-pointer"
+       id="edit-student-photo-trigger">
+
+    <!-- PLACEHOLDER (Lucide) -->
+    <div id="edit-placeholder-student"
+         class="text-center text-[#64748b] text-[10px] font-bold">
+
+      <i data-lucide="camera"
+         class="w-8 h-8 mx-auto mb-1 opacity-50"></i>
+      PHOTO
+    </div>
+
+    <!-- PREVIEW -->
+    <img id="edit-preview-student"
+         class="hidden"
+         style="height:80px; width:80px; object-fit:cover; border-radius:8px;" />
+
+  </div>
+
+  <!-- INPUT -->
+  <input type="file"
+         id="edit-student-photo"
+         accept="image/*"
+         class="hidden">
+
+</div>
+
+    <form id="editStudentForm">
+      <!-- Row 1 -->
+      <div class="row mb-2">
+        <label>Student ID <input type="text" name="studentId" readonly class="w-full border p-2 rounded"></label>
+        <label>Full Name <input type="text" name="fullName" class="w-full border p-2 rounded"></label>
+      </div>
+
+      <!-- Row 2 -->
+      <div class="row mb-2">
+        <label>Date of Birth <input type="date" name="dateOfBirth" class="w-full border p-2 rounded"></label>
+        <label>Sex
+          <select name="sex" class="w-full border p-2 rounded">
+            <option value="">--Select--</option>
+            <option>Male</option>
+            <option>Female</option>
+          </select>
+        </label>
+      </div>
+
+      <!-- Row 3 -->
+      <div class="row mb-2">
+        <label>Nationality <input type="text" name="nationality" class="w-full border p-2 rounded"></label>
+        <label>State of Origin <input type="text" name="stateOfOrigin" class="w-full border p-2 rounded"></label>
+      </div>
+
+      <!-- Row 4 -->
+      <div class="row mb-2">
+        <label>LGA <input type="text" name="lga" class="w-full border p-2 rounded"></label>
+        <label>Student Address <input type="text" name="studentAddress" class="w-full border p-2 rounded"></label>
+      </div>
+
+<!-- Row 5 -->
+<div class="row mb-2">
+
+  <!-- Admission Class -->
+  <label>Class Admitted Into</label>
+
+  <select name="admissionClass" id="editAdmissionClassSelect" style="display:none;">
+    <option value="">--Select Class--</option>
+  </select>
+
+  <div class="student-select">
+    <div id="editAdmissionClassSelected"
+         class="student-selected"
+         onclick="toggleStudentDropdown('editAdmissionClassDropdown')">
+
+      <div class="student-placeholder">
+        <span id="editAdmissionClassSelectedText">--Select Class--</span>
+      </div>
+      <span class="student-arrow">▼</span>
+    </div>
+
+    <div id="editAdmissionClassDropdown" class="student-dropdown"></div>
+  </div>
+
+
+  <!-- Current Class -->
+  <label>Current Class</label>
+
+  <select name="studentClass" id="editCurrentClassSelect" style="display:none;">
+    <option value="">--Select Class--</option>
+  </select>
+
+  <div class="student-select">
+    <div id="editCurrentClassSelected"
+         class="student-selected"
+         onclick="toggleStudentDropdown('editCurrentClassDropdown')">
+
+      <div class="student-placeholder">
+        <span id="editCurrentClassSelectedText">--Select Class--</span>
+      </div>
+      <span class="student-arrow">▼</span>
+    </div>
+
+    <div id="editCurrentClassDropdown" class="student-dropdown"></div>
+  </div>
+
+</div>
+
+
+      <!-- Row 6 -->
+      <div class="row mb-2">
+        <label>Parent Name <input type="text" name="parentName" class="w-full border p-2 rounded"></label>
+        <label>Parent Phone <input type="tel" name="parentPhone" class="w-full border p-2 rounded"></label>
+      </div>
+
+      <!-- Row 7 -->
+      <div class="row mb-2">
+        <label>Parent Email <input type="email" name="parentEmail" class="w-full border p-2 rounded"></label>
+        <label>Parent Address <input type="text" name="parentAddress" class="w-full border p-2 rounded"></label>
+      </div>
+
+      <!-- Row 8 -->
+      <div class="row mb-2">
+        <label>Guardian Name <input type="text" name="guardianName" class="w-full border p-2 rounded"></label>
+        <label>Guardian Phone <input type="tel" name="guardianPhone" class="w-full border p-2 rounded"></label>
+      </div>
+
+      <!-- Row 9 -->
+      <div class="row mb-2">
+        <label>Guardian Email <input type="email" name="guardianEmail" class="w-full border p-2 rounded"></label>
+        <label>Guardian Address <input type="text" name="guardianAddress" class="w-full border p-2 rounded"></label>
+      </div>
+
+      <!-- Row 10: Siblings -->
+      <div class="row mb-2">
+        <label>Sibling Name <input type="text" name="siblingName" class="w-full border p-2 rounded"></label>
+
+       <label>Sibling Class</label>
+
+<select id="editSiblingClassSelect" name="siblingClass" style="display:none;">
+  <option value="">--Select Class--</option>
+</select>
+
+<div class="student-select">
+  <div id="editSiblingClassSelected"
+       class="student-selected"
+       onclick="toggleStudentDropdown('editSiblingClassDropdown')">
+
+    <div class="student-placeholder">
+      <span id="editSiblingClassSelectedText">--Select Class--</span>
+    </div>
+
+    <span class="student-arrow">▼</span>
+  </div>
+
+  <div id="editSiblingClassDropdown" class="student-dropdown"></div>
+</div>
+        
+        <label>Sibling Gender
+          <select name="siblingGender" class="w-full border p-2 rounded">
+            <option value="">--Select--</option>
+            <option>Male</option>
+            <option>Female</option>
+          </select>
+        </label>
+      </div>
+
+      <!-- Modal Buttons -->
+      <div class="flex justify-end gap-2 mt-4">
+        <button type="button" id="closeStudentModal" class="bg-gray-500 text-white px-4 py-2 rounded">Cancel</button>
+        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- EDIT TEACHER MODAL -->
+<div id="editTeacherModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+  <div class="bg-white p-6 rounded-lg w-full max-w-2xl relative max-h-[90vh] overflow-y-auto">
+
+    <h2 class="text-xl font-bold mb-4">Edit Teacher</h2>
+
+    <form id="editTeacherForm">
+
+<div class="flex flex-col items-center gap-2 mb-4">
+
+  <div id="teacherPhotoTriggerEdit"
+       class="image-upload-container cursor-pointer">
+
+    <div id="placeholder-teacher-edit"
+         class="text-center text-[#64748b] text-[10px] font-bold">
+
+      <i data-lucide="camera"
+         class="w-8 h-8 mx-auto mb-1 opacity-50"></i>
+      PHOTO
+    </div>
+
+    <img id="preview-teacher-edit"
+         class="hidden"
+         style="height:80px;width:80px;object-fit:cover;border-radius:8px;" />
+
+  </div>
+
+  <input type="file"
+         id="teacherPhotoEdit"
+         accept="image/*"
+         class="hidden" />
+
+</div>
+
+      <!-- FIELDS -->
+      <input type="hidden" name="editTeacherUuid">
+
+      <div class="mb-2">
+        <label>Teacher ID
+          <input type="text" name="teacherId" class="w-full border p-2 rounded">
+        </label>
+      </div>
+
+      <div class="mb-2">
+        <label>Full Name
+          <input type="text" name="fullName" class="w-full border p-2 rounded">
+        </label>
+      </div>
+
+      <div class="mb-2">
+        <label>Phone
+          <input type="tel" name="phone" class="w-full border p-2 rounded">
+        </label>
+      </div>
+
+      <div class="mb-2">
+        <label>Qualification
+          <input type="text" name="qualification" class="w-full border p-2 rounded">
+        </label>
+      </div>
+
+      <div class="mb-2">
+        <label>Subject Specialization
+          <input type="text" name="subjectSpecialization" class="w-full border p-2 rounded">
+        </label>
+      </div>
+
+      <div class="mb-2">
+        <label>Class Teacher
+          <input type="text" name="classTeacher" class="w-full border p-2 rounded">
+        </label>
+      </div>
+
+      <div class="mb-2">
+        <label>Years of Experience
+          <input type="number" name="yearsOfExperience" class="w-full border p-2 rounded">
+        </label>
+      </div>
+
+      <div class="mb-2">
+        <label>Joining Date
+          <input type="date" name="joiningDate" class="w-full border p-2 rounded">
+        </label>
+      </div>
+
+      <div class="flex justify-end gap-2 mt-4">
+        <button type="button"
+                id="closeTeacherModal"
+                class="bg-gray-500 text-white px-4 py-2 rounded">
+          Cancel
+        </button>
+
+        <button type="submit"
+                class="bg-blue-600 text-white px-4 py-2 rounded">
+          Save Changes
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+<!-- =======================
+     SUBJECTS SECTION
+======================= -->
+<section id="addSubjects" class="section" data-role="admin">
+  <h1>Add Subjects</h1>
+  <div class="form-card">
+    <form id="subjectForm">
+
+      <!-- Class selector (reusable dropdown) -->
+      <label for="classSelect">Select Class</label>
+      <div class="student-select">
+        <div id="classSelected" class="student-selected" onclick="toggleStudentDropdown('classDropdown')">
+          <div class="student-placeholder">
+            <span id="classSelectedText">--Select Class--</span>
+          </div>
+          <span class="student-arrow">▼</span>
+        </div>
+        <div id="classDropdown" class="student-dropdown"></div>
+      </div>
+      <!-- Hidden select used by forms -->
+      <select id="classSelect" required style="display:none;">
+        <option value="">--Select Class--</option>
+      </select>
+
+<div class="stats-bar">
+  <span>Subjects in view: </span>
+  <strong id="subjectsPageCount">0</strong>
+</div>
+
+
+      <!-- Subject textarea -->
+      <div class="row mt-4">
+        <label for="subjectTextarea">Enter Subjects (one per line)</label>
+        <textarea id="subjectTextarea" rows="10" placeholder="e.g. Math\nEnglish\nBiology" style="width:100%; padding:10px;"></textarea>
+      </div>
+
+      <!-- Save button -->
+      <button type="button" id="saveSubjectsBtn">Save Subjects</button>
+
+    </form>
+
+    <!-- Registered subjects display -->
+    <div class="mt-6" id="registeredSubjects"></div>
+  </div>
+</section>
+
+<!-- ADD CLASSES -->
+<section id="addClasses" class="section" data-role="admin">
+
+  <h1>Add Classes</h1>
+
+<div class="stats-bar">
+  <span>Total Classes: </span>
+  <strong id="classesPageCount">0</strong>
+</div>
+
+  <div class="form-card">
+
+    <!-- -------------------------
+         Add Classes Form
+         ------------------------- -->
+    <div class="row">
+      <label for="classTextarea">Enter Classes (one per line)</label>
+      <textarea 
+        id="classTextarea" 
+        placeholder="e.g.\nJSS 1\nJSS 2\nSSS 1"
+        rows="6"
+        style="width: 100%; padding: 10px;"
+      ></textarea>
+    </div>
+
+    <button id="saveClassesBtn">Save Classes</button>
+
+  </div>
+
+  <!-- -------------------------
+       Manage Classes Section
+       ------------------------- -->
+  <div class="form-card mt-6">
+    <h2>Registered Classes</h2>
+    <div id="registeredClasses">
+      <!-- JS will populate this container with all classes -->
+      <p class="text-gray-500 text-center">No classes registered yet.</p>
+    </div>
+  </div>
+
+</section>
+
+<!--Fees-->
+<section id="feeTracking" class="section p-6 bg-gray-50 rounded shadow-md">
+
+  <h1 class="text-2xl font-bold mb-4">Result Credits</h1>
+
+  <div id="subscriptionCard">
+
+    <h2>📊 Credit Status</h2>
+
+    <p><strong>Status:</strong> <span id="statusText"></span></p>
+    <p><strong>Credits Left:</strong> <span id="daysLeft"></span></p>
+
+    <button onclick="payNow()" class="bg-green-600 text-white px-4 py-2 rounded">
+      💳 Buy Credits (₦200 per result)
+    </button>
+
+    <p id="paymentStatus" style="margin-top:10px;"></p>
+
+  </div>
+
+</section>
+
+</body>
+</html>
