@@ -615,68 +615,65 @@ function initImageUploader({
   });
 }
 
-// subscription (credits system)
 
-// SAFE LOADER (no race condition)
+// subscription (credits system)
+// LOAD TOTAL CREDITS (SUM)
 async function loadCredits() {
   try {
-    const { data: schoolId, error: schoolErr } =
+    const { data: schoolId } =
       await supabaseClient.rpc("current_user_school_id");
 
-    if (schoolErr || !schoolId) {
-      console.warn("School ID not ready yet");
-      return;
-    }
+    if (!schoolId) return;
 
     const { data, error } = await supabaseClient
       .from("school_subscriptions")
       .select("credits")
-      .eq("school_id", schoolId)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .eq("school_id", schoolId);
 
     if (error) {
-      console.error("Credit fetch error:", error);
+      console.error(error);
       return;
     }
 
-    const credits = data?.credits ?? 0;
+    const totalCredits = (data || []).reduce(
+      (sum, row) => sum + (row.credits || 0),
+      0
+    );
 
     document.getElementById("statusText").innerText =
-      credits > 0 ? "ACTIVE" : "NO CREDITS";
+      totalCredits > 0 ? "ACTIVE" : "NO CREDITS";
 
-    document.getElementById("daysLeft").innerText = credits;
+    document.getElementById("daysLeft").innerText = totalCredits;
 
   } catch (err) {
-    console.error("loadCredits failed:", err);
+    console.error(err);
   }
 }
 
 
-// PAYMENT FLOW
+// PAYMENT FLOW (WITH AMOUNT)
 async function payNow() {
   try {
     const statusEl = document.getElementById("paymentStatus");
     statusEl.innerText = "Initializing payment...";
 
-    const { data: schoolId, error: schoolErr } =
+    const amount = Number(document.getElementById("amountInput").value);
+
+    if (!amount || amount <= 0) {
+      statusEl.innerText = "Enter a valid amount";
+      return;
+    }
+
+    const { data: schoolId } =
       await supabaseClient.rpc("current_user_school_id");
 
-    if (schoolErr || !schoolId) {
-      statusEl.innerText = "School not ready";
-      return;
-    }
-
-    const { data: { session }, error: authErr } =
+    const { data: { session } } =
       await supabaseClient.auth.getSession();
 
-    if (authErr || !session) {
-      statusEl.innerText = "User not authenticated";
+    if (!schoolId || !session) {
+      statusEl.innerText = "Auth error";
       return;
     }
-
-    const email = session.user.email;
 
     const res = await fetch(
       "https://irelkjvppoisvjpopdpb.supabase.co/functions/v1/initiate-paystack",
@@ -688,7 +685,8 @@ async function payNow() {
         },
         body: JSON.stringify({
           school_id: schoolId,
-          email
+          email: session.user.email,
+          amount
         })
       }
     );
@@ -700,19 +698,17 @@ async function payNow() {
       return;
     }
 
-    // redirect to Paystack checkout
     window.location.href = data.authorization_url;
 
   } catch (err) {
-    console.error("payNow error:", err);
+    console.error(err);
   }
 }
 
 
-// BOOTSTRAP (IMPORTANT FIX)
-window.addEventListener("DOMContentLoaded", () => {
-  loadCredits();
-});
+// AUTO LOAD
+window.addEventListener("DOMContentLoaded", loadCredits);
+
 
 /* =======================
    STUDENTS
