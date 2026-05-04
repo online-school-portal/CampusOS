@@ -477,6 +477,11 @@ our portal simplifies school management so you can focus on education, not paper
     Connect with us on Telegram and we’ll guide you through all features.
   </p>
   <button id="telegramBtn">Message on Telegram</button>
+  <p class="text-gray-700 text-center">
+    OR
+  </p>
+   <button id="callBtn">Call Now 📞</button>
+  </div>
 </section>
 
 
@@ -668,12 +673,14 @@ function hideSpinner() {
 }
 
 
+
 //=========================
 //CONTACT
 //==========================
 const telegramBtn = document.getElementById('telegramBtn');
   const username = 'webdevjoel';
-
+  const phoneNumber = '+2347048994402';
+  
   telegramBtn.addEventListener('click', () => {
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     
@@ -687,6 +694,17 @@ const telegramBtn = document.getElementById('telegramBtn');
       window.open(`https://t.me/${username}`, '_blank');
     }
   });
+  
+  // CALL NOW (logic)
+callBtn.addEventListener('click', () => {
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+  if (isMobile) {
+    window.location.href = `tel:${phoneNumber}`;
+  } else {
+    alert("Call us on: +" + phoneNumber);
+  }
+});
   </script>
   
 </body>
