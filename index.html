@@ -911,7 +911,7 @@ our portal simplifies school management so you can focus on education, not paper
       <button id="teacherLoginBtn" 
   class="bg-blue-600 text-white px-6 py-3 rounded-lg shadow hover:bg-blue-700 transition inline-flex items-center gap-2">
 
-  <span class="btn-icon">🚀</span>
+  <span class="btn-icon">🔓</span>
   Login to Portal
 
 </button>
@@ -961,13 +961,13 @@ our portal simplifies school management so you can focus on education, not paper
 
   <p class="text-gray-700 text-center">
     Want to use the portal? 💻
-    Connect with us on Telegram and we’ll guide you through all features.
+    Connect with us on Whatsapp and we’ll guide you through all features.
   </p>
 
   <!-- Telegram Button -->
-  <button id="telegramBtn" class="contact-btn telegram-btn">
+  <button id="whatsappBtn" class="contact-btn telegram-btn">
     <span class="icon">📨</span>
-    Message on Telegram
+    Message on Whatsapp
   </button>
 
   <p class="text-gray-700 text-center my-2">
@@ -1178,35 +1178,52 @@ function hideSpinner() {
 
 
 //=========================
-//CONTACT
-//==========================
-const telegramBtn = document.getElementById('telegramBtn');
-  const username = 'webdevjoel';
-  const phoneNumber = '+2347048994402';
-  
-  telegramBtn.addEventListener('click', () => {
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    
-    if (isMobile) {
-      window.location.href = `tg://resolve?domain=${username}`;
-      
-      setTimeout(() => {
-        window.open(`https://t.me/${username}`, '_blank');
-      }, 1000);
-    } else {
-      window.open(`https://t.me/${username}`, '_blank');
-    }
-  });
-  
-  // CALL NOW (logic)
+// CONTACT
+//=========================
+const whatsappBtn =
+  document.getElementById('whatsappBtn');
+
+const phoneNumber =
+  '2347048994402';
+
+// WHATSAPP
+whatsappBtn.addEventListener('click', () => {
+
+  const message =
+    encodeURIComponent(
+      "Hello, I'm interested in CampusOS."
+    );
+
+  const whatsappUrl =
+    `https://wa.me/${phoneNumber}?text=${message}`;
+
+  window.open(whatsappUrl, '_blank');
+
+});
+
+//=========================
+// CALL NOW
+//=========================
 callBtn.addEventListener('click', () => {
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+  const isMobile =
+    /iPhone|iPad|iPod|Android/i.test(
+      navigator.userAgent
+    );
 
   if (isMobile) {
-    window.location.href = `tel:${phoneNumber}`;
+
+    window.location.href =
+      `tel:+${phoneNumber}`;
+
   } else {
-    alert("Call us on: +" + phoneNumber);
+
+    alert(
+      "Call us on: +2347048994402"
+    );
+
   }
+
 });
 
   </script>
