@@ -995,25 +995,17 @@
   margin-top: 10px;
 }
 
-/*.tutorial-video {
-  width: 100%;
-  max-height: 220px;
-  border-radius: 10px;
-  object-fit: contain;
-  background: #000;
-} */
-
 .tutorial-video {
-  width: 100%;
-  aspect-ratio: 16 / 10;
+  width: min(72vw, 800px);
+  height: 55vh;
 
-  min-height: 320px;
-  max-height: 600px;
+  margin: 0 auto;
+  display: block;
 
   border-radius: 10px;
 
-  object-fit: cover;
-  object-position: top;
+  object-fit: contain;
+  object-position: center;
 
   background: #000;
 }
@@ -1035,13 +1027,21 @@
   transform: rotate(180deg);
 }
 
-@media (min-width: 1024px) {
+@media (max-width: 1024px) {
   .tutorial-card {
     padding: 14px;
   }
 
   .tutorial-video {
-    max-height: 520px;
+    width: 85%;
+    height: 50vh;
+  }
+}
+
+@media (max-width: 640px) {
+  .tutorial-video {
+    width: 92%;
+    height: 45vh;
   }
 }
 
