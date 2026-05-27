@@ -655,6 +655,8 @@
 .login-video{
   width: min(72vw, 820px);
 
+  aspect-ratio: 16 / 9;
+
   border-radius: 18px;
 
   display: block;
@@ -668,15 +670,13 @@
 
   box-shadow:
     0 10px 30px rgba(0,0,0,0.15);
-
-  height: clamp(420px, 78vh, 920px);
 }
 
-/*mobile*/
 @media (max-width: 640px){
 
   .login-video{
     width: 92%;
+    border-radius: 14px;
   }
 
 }
