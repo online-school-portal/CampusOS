@@ -1,0 +1,24 @@
+{
+  "rewrites": [
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "bps.campusoperatingsystem.com"
+        }
+      ],
+      "destination": "/bps.html"
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "campusoperatingsystem.com"
+        }
+      ],
+      "destination": "/index.html"
+    }
+  ]
+}
