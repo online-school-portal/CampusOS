@@ -1,0 +1,850 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BPS Page</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <style>
+    /* ===== HERO BACKGROUND ===== */
+    #home {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 0 5%;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      position: relative;
+    }
+
+    /* Dark overlay for better text readability */
+    #home::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, rgba(0, 0, 50, 0.7) 0%, rgba(0, 0, 80, 0.5) 100%);
+      z-index: 0;
+    }
+
+    /* ===== GENERAL ===== */
+    * { box-sizing: border-box; scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background: #fff;
+      color: #000;
+      overflow-x: hidden;
+    }
+    h1, h2, h3, h4 { font-family: 'Space Grotesk', sans-serif; margin: 0; }
+    section { padding: 80px 10%; }
+
+    /* ===== NAVBAR ===== */
+    .navbar {
+      position: fixed;
+      top: 0; width: 100%;
+      background: #fff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 10%;
+      z-index: 1000;
+      transition: box-shadow 0.3s ease;
+      border-bottom: 1px solid #ccc;
+    }
+    .navbar.scrolled { box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+
+    .navbar .logo {
+      font-size: 1.4rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: navy;
+      white-space: nowrap;
+    }
+
+    /* Hamburger only */
+    .nav-links {
+      position: fixed;
+      top: 50px;
+      right: -200px;
+      width: 180px;
+      height: calc(100% - 50px);
+      background: #fff;
+      flex-direction: column;
+      align-items: center;
+      justify-content: start;
+      padding-top: 20px;
+      gap: 15px;
+      transition: right 0.3s ease;
+      border-left: 1px solid #ccc;
+      display: flex;
+    }
+    .nav-links a {
+      color: navy;
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 1rem;
+      width: 100%;
+      text-align: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .nav-links.active { right: 0; }
+
+    /* Hamburger icon */
+    .hamburger {
+      display: flex;
+      flex-direction: column;
+      cursor: pointer;
+      gap: 5px;
+      z-index: 1100;
+    }
+    .hamburger div {
+      width: 25px;
+      height: 3px;
+      background: navy;
+      transition: all 0.3s ease;
+    }
+    .hamburger.active div:nth-child(1) {
+      transform: rotate(45deg) translate(5px, 5px);
+    }
+    .hamburger.active div:nth-child(2) { opacity: 0; }
+    .hamburger.active div:nth-child(3) {
+      transform: rotate(-45deg) translate(5px, -5px);
+    }
+
+    /* ===== HERO ===== */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 0 5%;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      padding: 40px 50px;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      max-width: 700px;
+      animation: fadeInUp 1s ease-out forwards;
+    }
+
+    .hero h1 {
+      font-size: clamp(1.8rem, 5vw, 3rem);
+      margin-bottom: 15px;
+      color: #fff;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    .hero h2 {
+      font-size: clamp(1rem, 3vw, 1.4rem);
+      font-weight: 500;
+      color: #f0f0f0;
+      margin-bottom: 20px;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+    }
+
+    .hero p {
+      font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+      color: #e0e0e0;
+      max-width: 600px;
+      line-height: 1.8;
+      margin-bottom: 25px;
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .hero .btn-primary {
+      background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+      border: none;
+      color: #fff;
+      padding: 14px 35px;
+      font-size: 1rem;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: 600;
+      text-decoration: none;
+      display: inline-block;
+      box-shadow: 0 4px 15px rgba(30, 58, 138, 0.4);
+    }
+
+    .hero .btn-primary:hover {
+      background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
+      transform: translateY(-3px);
+      box-shadow: 0 6px 20px rgba(30, 58, 138, 0.5);
+    }
+
+    .hero .btn-secondary {
+      background: transparent;
+      border: 2px solid #fff;
+      color: #fff;
+      padding: 12px 30px;
+      font-size: 1rem;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: 500;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .hero .btn-secondary:hover {
+      background: #fff;
+      color: navy;
+      transform: translateY(-3px);
+    }
+
+    /* Floating badge */
+    .hero-badge {
+      display: inline-block;
+      background: rgba(255, 215, 0, 0.9);
+      color: #1e3a8a;
+      padding: 8px 20px;
+      border-radius: 50px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+      animation: pulse 2s infinite;
+    }
+
+    /* Scroll indicator */
+    .scroll-indicator {
+      position: absolute;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1;
+      animation: bounce 2s infinite;
+    }
+
+    .scroll-indicator a {
+      color: #fff;
+      text-decoration: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.8rem;
+      opacity: 0.8;
+      transition: opacity 0.3s;
+    }
+
+    .scroll-indicator a:hover {
+      opacity: 1;
+    }
+
+    .scroll-indicator svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    /* ===== ANIMATIONS ===== */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(40px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.05);
+      }
+    }
+
+    @keyframes bounce {
+      0%, 20%, 50%, 80%, 100% {
+        transform: translateX(-50%) translateY(0);
+      }
+      40% {
+        transform: translateX(-50%) translateY(-10px);
+      }
+      60% {
+        transform: translateX(-50%) translateY(-5px);
+      }
+    }
+
+    /* ===== ABOUT ===== */
+    .about { text-align: center; }
+    .about h3 { color: navy; font-size: 2rem; margin-bottom: 10px; }
+    .about p { color: #333; font-size: 1rem; max-width: 800px; margin: 20px auto; line-height: 1.7; }
+    .profile-img { width: 150px; height: 150px; border-radius: 50%; object-fit: cover; border: 3px solid navy; margin: 20px 0; }
+
+    /* ===== CONTACT ===== */
+    .contact { text-align: center; padding-bottom: 80px; border-top: 1px solid #ccc; }
+    .contact h3 { font-size: 1.8rem; color: navy; margin-bottom: 20px; }
+    .contact p { color: #333; font-size: 1rem; }
+    .contact button { background: navy; color: #fff; border: none; border-radius: 8px; padding: 12px 30px; cursor: pointer; transition: 0.3s; }
+    .contact button:hover { background: #333; }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 768px) {
+      .hero-content {
+        padding: 30px 25px;
+        margin: 0 15px;
+      }
+      .hero-buttons {
+        flex-direction: column;
+        align-items: center;
+      }
+      .hero .btn-primary,
+      .hero .btn-secondary {
+        width: 100%;
+        text-align: center;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .hero h1 { font-size: 1.5rem; }
+      .hero h2 { font-size: 1rem; }
+      .hero p { font-size: 0.9rem; }
+      .hero-content { padding: 25px 20px; }
+      .navbar .logo { font-size: 1.2rem; }
+      .nav-links a { font-size: 0.9rem; }
+      .hero-badge { font-size: 0.75rem; padding: 6px 15px; }
+    }
+
+    .gallery-container{
+  position:relative;
+  max-width:800px;
+  margin:30px auto;
+}
+
+.gallery-image{
+  width:100%;
+  height:450px;
+  object-fit:cover;
+  border-radius:16px;
+  box-shadow:0 4px 20px rgba(0,0,0,0.15);
+}
+
+.gallery-btn{
+  position:absolute;
+  top:50%;
+  transform:translateY(-50%);
+  border:none;
+  background:rgba(0,31,91,0.8);
+  color:white;
+  width:45px;
+  height:45px;
+  border-radius:50%;
+  cursor:pointer;
+  font-size:20px;
+  z-index:2;
+}
+
+.gallery-btn:hover{
+  background:#001f5b;
+}
+
+.prev{
+  left:10px;
+}
+
+.next{
+  right:10px;
+}
+
+@media(max-width:768px){
+  .gallery-image{
+    height:250px;
+  }
+}
+
+  </style>
+</head>
+<body>
+
+  <!-- ===== NAVBAR ===== -->
+  <nav class="navbar" id="navbar">
+    <div class="logo">Believers Praise School</div>
+    <div class="hamburger" id="hamburger">
+      <div></div>
+      <div></div>
+      <div></div>
+    </div>
+    <div class="nav-links" id="navLinks">
+      <a href="#home">Home</a>
+      <a href="#about">About</a>
+      <a href="#login">Login</a>
+      <a href="#contact">Contact</a>
+    </div>
+  </nav>
+
+  <!-- ===== HERO ===== -->
+  <section id="home" class="hero">
+    <div class="hero-content">
+      <span class="hero-badge">✝️ God First</span>
+      <h1>Believers Praise Christian School</h1>
+      <h2>Empowering Future Leaders, In Christ</h2>
+      <p>Excellence in character and education begins with faith. Join us on a journey of academic excellence and spiritual growth.</p>
+      <div class="hero-buttons">
+        <a href="#login" class="btn-primary">Login</a>
+        <a href="#about" class="btn-secondary">Learn More</a>
+      </div>
+    </div>
+    
+    <!-- Scroll Indicator -->
+    <div class="scroll-indicator">
+      <a href="#about">
+        <span>Scroll Down</span>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+        </svg>
+      </a>
+    </div>
+  </section>
+
+<!-- ===== ABOUT ===== -->
+<section id="about" class="about">
+
+  <h3>About Us</h3>
+
+  <img
+    id="profileImg"
+    src="https://irelkjvppoisvjpopdpb.supabase.co/storage/v1/object/public/logo-images/BPS-logo.jpg"
+    alt="School Logo"
+    class="profile-img"
+  >
+
+  <p>
+    Welcome to Believers Praise Christian School, where learning and growth go hand in hand.
+    Our dedicated teachers guide students to reach their full potential.
+    We foster curiosity, creativity, and critical thinking in every classroom.
+    Beyond academics, we encourage sports, arts, and community involvement.
+    At Believers Praise Christian School, we prepare students to become confident, caring leaders.
+  </p>
+
+  <!-- IMAGE GALLERY -->
+  <div class="gallery-container">
+
+    <button class="gallery-btn prev" onclick="changeGalleryImage(-1)">
+      ❮
+    </button>
+
+    <img
+      id="galleryImage"
+      src="https://images.unsplash.com/photo-1509062522246-3755977927d7?w=1200"
+      alt="School Activity"
+      class="gallery-image"
+    >
+
+    <button class="gallery-btn next" onclick="changeGalleryImage(1)">
+      ❯
+    </button>
+
+  </div>
+
+</section>
+
+<!-- ===== LOGIN PAGINATION ===== -->
+<section id="login" class="py-12 bg-gray-50">
+  <div class="max-w-md mx-auto bg-white p-8 rounded-xl shadow-lg border border-gray-200">
+
+    <h2 class="text-xl font-bold text-center text-[#001f5b] mb-4">
+      Portal Access
+    </h2>
+
+    <p class="text-center text-gray-700 mb-6">
+      Login to access features for administrators, teachers and students.
+    </p>
+
+    <div class="text-center">
+  <button
+    id="teacherLoginBtn"
+    class="bg-white text-[#001f5b] border border-gray-300 px-6 py-3 rounded-lg shadow-sm hover:bg-gray-100 hover:border-gray-400 transition inline-flex items-center gap-2"
+  >
+    <span class="btn-icon">🚀</span>
+    Login to Portal
+  </button>
+</div>
+
+  </div>
+</section>
+
+<!-- ===== LOGIN POPUP ===== -->
+<div
+  id="loginPopup"
+  class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+>
+  <div class="bg-white p-6 rounded-xl w-80 shadow-2xl border border-gray-200">
+
+    <h3 class="text-lg font-bold mb-4 text-center text-[#001f5b]">
+      Login
+    </h3>
+
+    <input
+      type="email"
+      id="loginEmail"
+      placeholder="Enter your email"
+      class="w-full p-3 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-[#001f5b]"
+    />
+
+    <input
+      type="password"
+      id="loginPassword"
+      placeholder="Enter your password"
+      class="w-full p-3 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-[#001f5b]"
+    />
+
+    <div class="flex justify-end gap-2">
+
+      <button
+        id="loginCancel"
+        class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition"
+      >
+        Cancel
+      </button>
+
+      <button
+        id="loginSubmit"
+        class="px-4 py-2 rounded-lg bg-[#001f5b] text-white hover:bg-[#003080] transition"
+      >
+        Login
+      </button>
+
+    </div>
+
+    <div id="loading-spinner" class="hidden mt-4 text-center">
+      <div class="fancy-loader"></div>
+      <div class="text-[#001f5b] font-medium">
+        Loading...
+      </div>
+    </div>
+
+    <p
+      id="loginError"
+      class="text-red-600 mt-3 text-sm text-center hidden"
+    >
+      Invalid credentials
+    </p>
+
+  </div>
+</div>
+
+<!-- ===== CONTACT ===== -->
+<section id="contact" class="contact">
+  <h3>Contact Us</h3>
+
+  <p>
+    We'd love to hear from you. Reach out through any of the channels below.
+  </p>
+
+  <div style="margin:20px 0; line-height:2.5;">
+
+<!-- PHONE -->
+<p style="display:flex;align-items:center;justify-content:center;gap:10px;">
+  <span style="font-size:20px;">📞</span>
+
+  <a href="tel:+2347034644748">
+    +234 703 464 4748
+  </a>
+</p>
+
+<!-- WHATSAPP -->
+<p style="display:flex;align-items:center;justify-content:center;gap:10px;">
+  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+           fill="#25D366" viewBox="0 0 24 24">
+        <path d="M20.52 3.48A11.78 11.78 0 0012.04 0C5.42 0 .04 5.38.04 12c0 2.11.55 4.18 1.59 6.01L0 24l6.15-1.61A11.94 11.94 0 0012.04 24c6.62 0 12-5.38 12-12 0-3.21-1.25-6.23-3.52-8.52zM12.04 21.8c-1.82 0-3.59-.49-5.13-1.41l-.37-.22-3.65.96.97-3.56-.24-.37A9.73 9.73 0 012.3 12c0-5.37 4.37-9.74 9.74-9.74s9.74 4.37 9.74 9.74-4.37 9.8-9.74 9.8zm5.34-7.3c-.29-.15-1.73-.85-2-.95-.27-.1-.47-.15-.67.15-.2.29-.77.95-.94 1.15-.17.2-.35.22-.64.07-.29-.15-1.23-.45-2.34-1.43-.87-.77-1.46-1.72-1.63-2.01-.17-.29-.02-.45.13-.6.13-.13.29-.35.44-.52.15-.17.2-.29.3-.49.1-.2.05-.37-.02-.52-.07-.15-.67-1.61-.92-2.21-.24-.58-.48-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.29-1.04 1.02-1.04 2.49s1.07 2.89 1.22 3.09c.15.2 2.09 3.19 5.06 4.47.71.31 1.27.49 1.71.63.72.23 1.37.2 1.88.12.57-.09 1.73-.71 1.98-1.4.24-.69.24-1.28.17-1.4-.07-.12-.27-.2-.57-.35z"/>
+      </svg>
+
+  <a href="https://wa.me/2347034644748" target="_blank">
+    +234 703 464 4748
+  </a>
+</p>
+
+<!-- EMAIL -->
+<p style="display:flex;align-items:center;justify-content:center;gap:10px;">
+  <span style="font-size:20px;">✉️</span>
+
+  <a href="mailto:believerspraiseschool@gmail.com">
+    believerspraiseschool@gmail.com
+  </a>
+</p>
+
+<!-- FACEBOOK -->
+<p style="display:flex;align-items:center;justify-content:center;gap:10px;">
+  <svg xmlns="http://www.w3.org/2000/svg"
+       width="20"
+       height="20"
+       fill="#1877F2"
+       viewBox="0 0 24 24">
+    <path d="M22 12a10 10 0 1 0-11.56 9.88v-6.99H7.9V12h2.54V9.8c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.23.19 2.23.19v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.78l-.44 2.89h-2.34v6.99A10 10 0 0 0 22 12z"/>
+  </svg>
+
+  <a href="#" target="_blank">
+    Believers Praise Christian School
+  </a>
+</p>
+
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer class="bg-gray-900 text-white text-center py-10">
+  <h4 class="text-lg font-bold">CampusOS</h4>
+  <p class="text-gray-400 mt-2">The School Operating System</p>
+  <p class="text-gray-500 text-sm mt-4">© 2026 CampusOS. All rights reserved.</p>
+</footer>
+
+  <script>
+    // Hamburger toggle
+    const hamburger = document.getElementById('hamburger');
+    const navLinks = document.getElementById('navLinks');
+    hamburger.addEventListener('click', () => {
+      navLinks.classList.toggle('active');
+      hamburger.classList.toggle('active');
+    });
+
+    // Smooth scroll and close menu when a nav link is clicked
+    document.querySelectorAll('.nav-links a').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const targetId = link.getAttribute('href').slice(1);
+        const targetSection = document.getElementById(targetId);
+        if (targetSection) {
+          targetSection.scrollIntoView({ behavior: 'smooth' });
+          navLinks.classList.remove('active');
+          hamburger.classList.remove('active');
+        }
+      });
+    });
+
+    // Smooth scroll for hero buttons
+    document.querySelectorAll('.hero-buttons a, .scroll-indicator a').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const targetId = link.getAttribute('href').slice(1);
+        const targetSection = document.getElementById(targetId);
+        if (targetSection) {
+          targetSection.scrollIntoView({ behavior: 'smooth' });
+        }
+      });
+    });
+
+    // Navbar shadow on scroll
+    const navbar = document.getElementById('navbar');
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 20) navbar.classList.add('scrolled');
+      else navbar.classList.remove('scrolled');
+    });
+    
+    
+//SUPABASE KEY N URL
+  const SUPABASE_URL = "https://irelkjvppoisvjpopdpb.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlyZWxranZwcG9pc3ZqcG9wZHBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYzNTUwMDAsImV4cCI6MjA4MTkzMTAwMH0.osF4wEZ-zm3cXScD1W8gMOkG81O2TbDJ8L47YvIIryw";
+
+  const supabaseClient = supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+  );
+
+//LOGIN
+document.addEventListener("DOMContentLoaded", () => {
+
+  const loginSubmit = document.getElementById("loginSubmit");
+  const loginPopup = document.getElementById("loginPopup");
+  const loginCancel = document.getElementById("loginCancel");
+  const loginEmail = document.getElementById("loginEmail");
+  const loginPassword = document.getElementById("loginPassword");
+  const loginError = document.getElementById("loginError");
+  const teacherLoginBtn = document.getElementById("teacherLoginBtn");
+
+  console.log("Login script initialized");
+
+  // Open Login Popup
+  function openLoginPopup() {
+    loginPopup.classList.remove("hidden");
+    loginEmail.value = "";
+    loginPassword.value = "";
+    loginError.classList.add("hidden");
+    loginError.textContent = "";
+    loginEmail.focus();
+  }
+
+  if (teacherLoginBtn) {
+    teacherLoginBtn.addEventListener("click", openLoginPopup);
+  }
+
+  if (loginCancel) {
+    loginCancel.addEventListener("click", () => {
+      loginPopup.classList.add("hidden");
+    });
+  }
+
+  // =========================
+  // LOGIN SUBMIT
+  // =========================
+  if (loginSubmit) {
+    loginSubmit.addEventListener("click", async () => {
+
+      const input = loginEmail.value.trim();
+      const password = loginPassword.value.trim();
+
+      loginError.classList.add("hidden");
+      loginError.textContent = "";
+
+      if (!input || !password) {
+        loginError.textContent = "Enter email or student ID and password";
+        loginError.classList.remove("hidden");
+        return;
+      }
+
+      // Detect student vs staff login
+      const isStudent = !input.includes("@");
+
+      const email = isStudent
+        ? `${input.toLowerCase()}@student.school.local`
+        : input;
+
+      try {
+
+        showSpinner("Signing you in...");
+
+        // =========================
+        // SAVE HOMEPAGE CONTEXT
+        // =========================
+        localStorage.setItem(
+          "schoolHomepage",
+          window.location.origin
+        );
+
+        // 🔐 AUTH LOGIN
+        const { data, error } =
+          await supabaseClient.auth.signInWithPassword({
+            email,
+            password
+          });
+
+        if (error || !data?.user) {
+          hideSpinner();
+          loginError.textContent = "Invalid credentials";
+          loginError.classList.remove("hidden");
+          return;
+        }
+
+        // ROLE CHECK
+        const { data: role, error: roleError } =
+          await supabaseClient.rpc("current_user_role");
+
+        if (roleError) {
+          hideSpinner();
+          loginError.textContent = "Role check failed";
+          loginError.classList.remove("hidden");
+          return;
+        }
+
+        // ROUTING
+        showSpinner("Loading dashboard...");
+
+        switch (role) {
+
+          case "admin":
+          case "teacher":
+          case "student":
+            window.location.href = "dashboard.html";
+            return;
+
+          default:
+            hideSpinner();
+            loginError.textContent = "No role assigned";
+            loginError.classList.remove("hidden");
+            return;
+        }
+
+      } catch (err) {
+        console.error("Login error:", err);
+        hideSpinner();
+        loginError.textContent = "Login failed";
+        loginError.classList.remove("hidden");
+      }
+    });
+  }
+});
+
+//=========================
+//SPINNER LOGIC
+//==========================
+const spinner = document.getElementById("loading-spinner");
+
+function showSpinner(message = "Uploading... Please wait") {
+  if (!spinner) return;
+  spinner.querySelector("div:last-child").textContent = message;
+  spinner.classList.remove("hidden");
+}
+
+function hideSpinner() {
+  spinner?.classList.add("hidden");
+}
+
+
+//=========================
+//Gallery LOGIC
+//==========================
+const galleryImages = [
+
+  "https://images.unsplash.com/photo-1509062522246-3755977927d7?w=1200",
+
+  "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=1200",
+
+  "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=1200",
+
+  "https://images.unsplash.com/photo-1513258496099-48168024aec0?w=1200"
+
+];
+
+let currentGalleryImage = 0;
+
+function changeGalleryImage(direction){
+
+  currentGalleryImage += direction;
+
+  if(currentGalleryImage < 0){
+    currentGalleryImage = galleryImages.length - 1;
+  }
+
+  if(currentGalleryImage >= galleryImages.length){
+    currentGalleryImage = 0;
+  }
+
+  document.getElementById("galleryImage").src =
+    galleryImages[currentGalleryImage];
+}
+
+  </script>
+</body>
+</html>
