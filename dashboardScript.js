@@ -1106,7 +1106,8 @@ async function payNow() {
         body: JSON.stringify({
           school_id: schoolId,
           email: session.user.email,
-          amount
+          amount,
+          origin: window.location.origin
         })
       }
     );
