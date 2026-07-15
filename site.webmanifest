@@ -1,0 +1,26 @@
+
+{
+  "name": "Campus Operating System",
+  "short_name": "CampusOS",
+  "description": "Campus Operating System is a comprehensive school management platform for secondary schools. Manage students, teachers, classes, subjects, school fees, examination results, report cards, and academic administration through one secure, cloud-based portal.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0284c7",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://irelkjvppoisvjpopdpb.supabase.co/storage/v1/object/public/logo-images/campusOS.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://irelkjvppoisvjpopdpb.supabase.co/storage/v1/object/public/logo-images/campusOS.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

@@ -1,0 +1,1083 @@
+<script>
+if (
+  window.location.hostname ===
+  "bps.campusoperatingsystem.com"
+) {
+  window.location.replace("/bps.html");
+}
+</script>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+ 
+ <meta name="google-site-verification" content="xe-Fo3g6kbVcTqm9UopQBbAnl-uo51Pu_TmXVeROf6w" />
+
+<!-- Primary SEO -->
+<title>Campus Operating System | School Management Software for Nigerian Schools</title>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<meta name="title" content="Campus Operating System | School Management Software for Nigerian Schools">
+
+<meta name="description"
+      content="Campus Operating System is a cloud-based school management software for primary and secondary schools. Manage students, teachers, classes, subjects, examination results, report cards, school fees, and school administration from one secure platform.">
+
+<meta name="keywords"
+      content="Campus Operating System, school management software Nigeria, school management system, school portal, student management system, teacher management, examination results, report cards, school fee management, education software, secondary school management, primary school management">
+
+<meta name="author" content="Campus Operating System">
+
+<meta name="robots" content="index, follow">
+
+<link rel="canonical" href="https://www.campusoperatingsystem.com/">
+
+<!-- Theme -->
+<meta name="theme-color" content="#0284c7">
+
+<!-- Favicon -->
+<link rel="icon"
+      type="image/png"
+      href="https://irelkjvppoisvjpopdpb.supabase.co/storage/v1/object/public/logo-images/campusOS.png">
+
+<link rel="apple-touch-icon"
+      href="https://irelkjvppoisvjpopdpb.supabase.co/storage/v1/object/public/logo-images/campusOS.png">
+
+<link rel="manifest" href="/site.webmanifest">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+
+<meta property="og:site_name"
+      content="Campus Operating System">
+
+<meta property="og:title"
+      content="Campus Operating System | School Management Software for Nigerian Schools">
+
+<meta property="og:description"
+      content="A modern cloud-based school management platform for managing students, teachers, classes, subjects, school fees, examination results, report cards and school administration.">
+
+<meta property="og:url"
+      content="https://www.campusoperatingsystem.com/">
+
+<meta property="og:image"
+      content="https://irelkjvppoisvjpopdpb.supabase.co/storage/v1/object/public/logo-images/campusOS.png">
+
+<meta property="og:image:alt"
+      content="Campus Operating System Logo">
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+
+<meta name="twitter:title"
+      content="Campus Operating System | School Management Software">
+
+<meta name="twitter:description"
+      content="Cloud-based school management software for primary and secondary schools.">
+
+<meta name="twitter:image"
+      content="https://irelkjvppoisvjpopdpb.supabase.co/storage/v1/object/public/logo-images/campusOS.png">
+
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+<style>
+  :root {
+    /* School-centric Professional Trust Color Palette */
+    --brand-blue: #0284c7;       /* Trustworthy Sky/Royal Blue (Primary) */
+    --brand-dark: #0f172a;       /* Dark Slate (High contrast readable text) */
+    --brand-light: #f0f9ff;      /* Calm, clean blue background tint */
+    --brand-accent: #0369a1;     /* Deep Navy Blue for hovering/headings */
+    --whatsapp-green: #25d366;   /* Official WhatsApp Green */
+    
+    --text-h1: #0f172a;
+    --text-h2: #1e293b;
+    --text-h3: #334155;
+    --text-body: #475569;
+    --text-muted: #64748b;
+
+    --s1: 8px;  --s2: 16px;  --s3: 24px; 
+    --s4: 32px; --s5: 40px;  --s6: 48px; 
+    --s10: 80px;
+  }
+
+  /* ===== GENERAL ===== */
+  * { box-sizing: border-box; scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: 'Poppins', sans-serif;
+    background: #ffffff;
+    color: var(--text-body);
+    overflow-x: hidden;
+    line-height: 1.6;
+  }
+
+  h1, h2, h3, h4 { font-family: 'Space Grotesk', sans-serif; margin: 0; }
+  h1 { font-size: clamp(2.2rem, 5vw, 3.8rem); color: var(--text-h1); font-weight: 800; }
+  h2 { font-size: clamp(1.4rem, 3vw, 2rem); color: var(--text-h2); font-weight: 700; }
+  h3 { font-size: 1.5rem; color: var(--text-h3); font-weight: 600; }
+  h4 { font-size: 1.1rem; color: var(--text-h3); }
+
+  section { padding: var(--s10) 10%; }
+
+  /* ===== NAVBAR ===== */
+  .navbar {
+    position: fixed;
+    top: 0; width: 100%;
+    background: rgba(255, 255, 255, 0.98);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--s2) 10%;
+    z-index: 1000;
+    border-bottom: 1px solid rgba(2, 132, 199, 0.1);
+  }
+  .navbar.scrolled { box-shadow: 0 4px 20px rgba(0, 40, 100, 0.05); }
+
+  .navbar .logo {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--brand-blue);
+    letter-spacing: -0.5px;
+  }
+
+  /* Navigation Links */
+  .nav-links {
+    display: flex;
+    gap: var(--s4);
+    align-items: center;
+  }
+
+  .nav-links a {
+    color: var(--text-h2);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.95rem;
+    transition: color 0.2s ease;
+  }
+  .nav-links a:hover { color: var(--brand-blue); }
+
+  /* Hamburger Menu (Mobile Only) */
+  .hamburger { display: none; cursor: pointer; flex-direction: column; gap: 5px; }
+  .hamburger div { width: 25px; height: 3px; background: var(--brand-blue); transition: 0.3s; }
+
+  /* ===== LOGO ===== */
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+  }
+
+  .logo-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: #ffffff;
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.15);
+    flex-shrink: 0;
+  }
+
+  .logo-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 4px;
+  }
+
+  .logo-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+  }
+
+  .logo-main {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--brand-blue);
+    letter-spacing: -0.5px;
+  }
+
+  .logo-sub {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  /* ===== SOCIALS ===== */
+  .nav-socials {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .social-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--brand-blue);
+    background: rgba(2, 132, 199, 0.08);
+    transition: transform 0.2s, background 0.2s, color 0.2s;
+  }
+
+  .social-icon:hover {
+    transform: translateY(-1px);
+    background: var(--brand-blue);
+    color: white;
+  }
+
+  /* ===== CLEAN HERO SECTION ===== */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 140px 5% 100px;
+    position: relative;
+    /* Professional Blue Trust Gradient - Perfect for Higher Ed / EdTech */
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    overflow: hidden;
+  }
+
+  /* Hero Container Card */
+  .hero-content {
+    position: relative;
+    z-index: 2;
+    background: #ffffff;
+    padding: var(--s6) var(--s5);
+    border-radius: 24px;
+    border: 1px solid rgba(2, 132, 199, 0.1);
+    max-width: 800px;
+    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.05);
+    animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  /* Hero Badge (Highlights product version, trust score, etc.) */
+  .hero-badge {
+    display: inline-block;
+    background: rgba(2, 132, 199, 0.1);
+    color: var(--brand-accent);
+    padding: 6px var(--s2);
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: var(--s3);
+    border: 1px solid rgba(2, 132, 199, 0.15);
+  }
+
+  .hero h1 {
+    color: var(--text-h1);
+    margin-bottom: var(--s2);
+    line-height: 1.2;
+    letter-spacing: -0.5px;
+  }
+
+  .hero h2 {
+    color: var(--brand-accent);
+    margin-bottom: var(--s3);
+    font-weight: 500;
+    font-size: clamp(1.1rem, 2vw, 1.35rem);
+    line-height: 1.5;
+  }
+
+  .hero p {
+    color: var(--text-body);
+    margin: 0 auto var(--s4) auto;
+    max-width: 600px;
+    font-size: 1.05rem;
+    line-height: 1.7;
+  }
+
+  /* Hero CTA Buttons */
+  .hero-buttons {
+    display: flex;
+    gap: var(--s2);
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  /* Primary Accent Button (Trust Blue) */
+  .btn-primary {
+    background: var(--brand-blue);
+    color: #ffffff;
+    padding: var(--s2) var(--s5);
+    border-radius: 10px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 14px rgba(2, 132, 199, 0.25);
+  }
+
+  .btn-primary:hover {
+    background: var(--brand-accent);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(2, 132, 199, 0.3);
+  }
+
+  /* Secondary Accent Button */
+  .btn-secondary {
+    background: #ffffff;
+    border: 1px solid rgba(2, 132, 199, 0.3);
+    color: var(--brand-accent);
+    padding: var(--s2) var(--s5);
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: background 0.2s, transform 0.2s, border-color 0.2s;
+  }
+
+  .btn-secondary:hover {
+    background: var(--brand-light);
+    transform: translateY(-2px);
+  }
+
+  .hero-buttons a {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-icon {
+    font-size: 16px;
+    line-height: 1;
+  }
+
+  /* ===== SCROLL INDICATOR ===== */
+  .scroll-indicator {
+    position: absolute;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;
+  }
+
+  .scroll-indicator a {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    font-weight: 500;
+    opacity: 0.8;
+    transition: opacity 0.2s, transform 0.2s;
+  }
+
+  .scroll-indicator a:hover {
+    opacity: 1;
+    transform: translateY(2px);
+  }
+
+  .scroll-indicator svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  /* ===== ABOUT SECTIONS ===== */
+  .about { text-align: center; background: #ffffff; }
+  .about h3 { margin-bottom: var(--s2); }
+  .about p { max-width: 800px; margin: 0 auto; color: var(--text-body); }
+  
+  .profile-img { 
+    width: 160px; height: 160px; 
+    border-radius: 50%; /* Rounded for formal school directory look */
+    border: 4px solid var(--brand-light); 
+    margin: var(--s4) auto; 
+    object-fit: cover;
+  }
+
+/* ===== LOGIN ===== */
+
+.login-section{
+
+  background: var(--brand-light);
+
+}
+
+.login-card{
+
+  max-width: 650px;
+
+  margin: 0 auto;
+
+  background: #fff;
+
+  padding: var(--s6);
+
+  border-radius: 20px;
+
+  border: 1px solid rgba(2,132,199,.1);
+
+  box-shadow:
+    0 18px 40px rgba(15,23,42,.06);
+
+  text-align: center;
+
+}
+
+.login-card h2{
+
+  color: var(--brand-blue);
+
+  margin-bottom: var(--s2);
+
+}
+
+.login-card p{
+
+  max-width: 540px;
+
+  margin: 0 auto var(--s5);
+
+  color: var(--text-body);
+
+  line-height: 1.8;
+
+}
+
+.login-actions{
+
+  display:flex;
+
+  justify-content:center;
+
+}
+
+.login-btn{
+
+  display:inline-flex;
+
+  align-items:center;
+
+  justify-content:center;
+
+  background: var(--brand-blue);
+
+  color:#fff;
+
+  border:none;
+
+  border-radius:12px;
+
+  padding:15px 36px;
+
+  font-size:1rem;
+
+  font-weight:600;
+
+  cursor:pointer;
+
+  transition:
+    background .25s ease,
+    transform .25s ease,
+    box-shadow .25s ease;
+
+  box-shadow:
+    0 8px 24px rgba(2,132,199,.22);
+
+}
+
+.login-btn:hover{
+
+  background: var(--brand-accent);
+
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 12px 28px rgba(2,132,199,.28);
+
+}
+
+.login-btn:active{
+
+  transform: translateY(0);
+
+}
+
+@media (max-width:768px){
+
+  .login-card{
+
+    padding: var(--s4);
+
+    border-radius:16px;
+
+  }
+
+  .login-btn{
+
+    width:100%;
+
+  }
+
+}
+
+  /* ===== WHATSAPP & CONTACT BUTTONS ===== */
+  #whatsappBtn, #callBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #ffffff;
+    border: none;
+    padding: var(--s2) var(--s4);
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    margin: var(--s1);
+    transition: background 0.2s, transform 0.2s;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+  
+  /* WhatsApp Identity Button */
+  #whatsappBtn { 
+    background: var(--whatsapp-green);
+    box-shadow: 0 4px 14px rgba(37, 211, 102, 0.25);
+  }
+  #whatsappBtn:hover {
+    background: #128c7e;
+    transform: translateY(-2px);
+  }
+
+  /* Call Primary Accent Button */
+  #callBtn { 
+    background: #ffffff; 
+    color: var(--brand-blue); 
+    border: 2px solid var(--brand-blue); 
+  }
+  #callBtn:hover {
+    background: var(--brand-light);
+    transform: translateY(-2px);
+  }
+
+  /* ===== STABLE FADE ANIMATION (NO LAYOUT SHIFTS) ===== */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ===== RESPONSIVE MEDIA QUERIES ===== */
+  @media (max-width: 768px) {
+    .logo-sub { display: none; }
+    .logo-main { font-size: 1rem; }
+    
+    .nav-links {
+      position: fixed; 
+      top: 72px; 
+      right: -100%;
+      flex-direction: column; 
+      background: #ffffff;
+      width: 100%; 
+      padding: var(--s4) 0;
+      transition: right 0.3s ease; 
+      border-top: 1px solid var(--brand-light);
+      box-shadow: 0 10px 15px rgba(0,0,0,0.05);
+    }
+    
+    .nav-links.active { right: 0; }
+    .hamburger { display: flex; }
+    .nav-socials { margin-top: 12px; }
+
+    .hero { padding: 110px 20px 80px; }
+    .hero-content { padding: var(--s4) var(--s3); border-radius: 16px; }
+    .hero-buttons { flex-direction: column; }
+    
+    .btn-primary, .btn-secondary { width: 100%; text-align: center; }
+    #whatsappBtn, #callBtn { display: flex; width: 100%; margin: var(--s1) 0; }
+  }
+</style>
+
+</head>
+<body>
+
+<!-- ===== NAVBAR ===== -->
+<nav class="navbar" id="navbar">
+
+  <!-- LOGO -->
+  <div class="logo">
+
+    <div class="logo-icon">
+  <img
+    src="https://irelkjvppoisvjpopdpb.supabase.co/storage/v1/object/public/logo-images/campusOS.png"
+    alt="CampusOS Logo"
+  />
+</div>
+
+    <div class="logo-text">
+      <span class="logo-main">CampusOS</span>
+      <span class="logo-sub">School Management</span>
+    </div>
+
+  </div>
+
+  <!-- HAMBURGER -->
+  <div class="hamburger" id="hamburger">
+    <div></div>
+    <div></div>
+    <div></div>
+  </div>
+
+  <!-- NAVIGATION -->
+  <div class="nav-links" id="navLinks">
+
+    <a href="#home">Home</a>
+    <a href="#about">About</a>
+    <a href="#login">Login</a>
+    <a href="#contact">Contact</a>
+
+    <!-- SOCIALS -->
+    <div class="nav-socials">
+
+<!-- WHATSAPP -->
+<a href="https://wa.me/2347048994402"
+   class="social-icon"
+   aria-label="WhatsApp"
+   target="_blank"
+   rel="noopener noreferrer">
+
+  <svg xmlns="http://www.w3.org/2000/svg"
+       width="18"
+       height="18"
+       fill="currentColor"
+       viewBox="0 0 16 16">
+
+    <path d="M13.601 2.326A7.854 7.854 0 0 0 8.004 0C3.584 0 0 3.584 0 8.004c0 1.414.37 2.795 1.073 4.012L0 16l4.092-1.066a7.98 7.98 0 0 0 3.912 1.018h.003c4.42 0 8.004-3.584 8.004-8.004a7.95 7.95 0 0 0-2.41-5.622zM8.004 14.55a6.53 6.53 0 0 1-3.33-.912l-.238-.141-2.428.633.648-2.367-.155-.243A6.52 6.52 0 0 1 1.453 8.004c0-3.61 2.94-6.55 6.55-6.55a6.51 6.51 0 0 1 4.633 1.92 6.51 6.51 0 0 1 1.917 4.63c0 3.61-2.94 6.547-6.549 6.547zm3.59-4.885c-.197-.099-1.164-.574-1.345-.639-.181-.066-.312-.099-.444.099-.131.197-.509.639-.624.771-.115.131-.23.148-.427.05-.197-.099-.831-.306-1.584-.975-.586-.523-.982-1.169-1.097-1.366-.115-.197-.012-.303.086-.401.089-.088.197-.23.296-.345.099-.115.131-.197.197-.329.066-.131.033-.246-.017-.345-.049-.099-.443-1.066-.607-1.459-.16-.384-.323-.332-.444-.338h-.378c-.131 0-.345.049-.525.246-.181.197-.689.672-.689 1.639s.706 1.902.804 2.033c.099.131 1.39 2.124 3.367 2.978.471.203.839.324 1.126.414.473.151.904.13 1.244.079.379-.056 1.164-.476 1.328-.935.164-.46.164-.853.115-.935-.05-.082-.181-.131-.378-.23z"/>
+  </svg>
+
+</a>
+
+      <!-- GITHUB -->
+      <a href="#"
+         class="social-icon"
+         aria-label="GitHub">
+
+        <svg xmlns="http://www.w3.org/2000/svg"
+             width="18"
+             height="18"
+             fill="currentColor"
+             viewBox="0 0 16 16">
+
+          <path d="M8 0C3.58 0 0 3.58 0 8a8 8 0 0 0 5.47 7.59c.4.07.55-.17.55-.38
+          0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13
+          -.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87
+          2.33.66.07-.52.28-.87.5-1.07-1.78-.2-3.64-.89-3.64-3.95
+          0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21
+          2.2.82a7.65 7.65 0 0 1 4 0c1.53-1.04 2.2-.82
+          2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82
+          1.27.82 2.15 0 3.07-1.87 3.75-3.65
+          3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01
+          2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+        </svg>
+
+      </a>
+
+    </div>
+
+  </div>
+
+</nav>
+
+
+<!-- ===== HERO ===== -->
+<section id="home" class="hero">
+  <div class="hero-content">
+
+    <span class="hero-badge">🚀 Modern School Management Software</span>
+
+    <h1>Campus Operating System</h1>
+
+    <h2>School Management Software for Primary and Secondary Schools</h2>
+
+    <p>
+      Campus Operating System is a modern school management platform designed to simplify school administration. Manage students, teachers, classes, subjects, examination results, report cards, school fees, and academic records from one secure and centralized online system.
+    </p>
+
+    <div class="hero-buttons">
+
+      <a href="#login" class="btn-primary inline-flex items-center gap-2">
+        <span class="btn-icon">🚪</span>
+        Enter Portal
+      </a>
+
+      <a href="#about" class="btn-secondary inline-flex items-center gap-2">
+        <span class="btn-icon">📖</span>
+        Learn More
+      </a>
+
+    </div>
+
+  </div>
+</section>
+
+    <!-- Scroll Indicator -->
+    <div class="scroll-indicator">
+      <a href="#about">
+        <span>Scroll Down</span>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+        </svg>
+      </a>
+    </div>
+  </section>
+
+
+<!-- ===== ABOUT ===== -->
+<section id="about" class="about">
+
+  <h3>About Campus Operating System</h3>
+
+  <img
+    id="profileImg"
+    src="https://irelkjvppoisvjpopdpb.supabase.co/storage/v1/object/public/logo-images/campusOS-cover-photo.jpeg"
+    alt="Campus Operating System"
+    class="profile-img"
+  >
+
+  <p>
+
+    Campus Operating System is a cloud-based school management software built to simplify the daily operations of primary and secondary schools. The platform enables schools to manage student records, teacher information, classes, subjects, examination results, report cards, school fees, and administrative activities through one secure online portal.
+
+  </p>
+
+  <p>
+
+    Rather than relying on paperwork or multiple disconnected systems, Campus Operating System provides a centralized platform where schools can register students, organize academic records, manage teachers, process examination results, generate professional report cards, and oversee essential school operations with greater efficiency and accuracy.
+
+  </p>
+
+  <p>
+
+    Whether you operate a private or public school, Campus Operating System is designed to reduce administrative workload, improve record keeping, and help schools manage academic activities more effectively using reliable digital technology.
+
+  </p>
+
+</section>
+
+
+<!-- ===== LOGIN ===== -->
+<section id="login" class="login-section">
+
+  <div class="login-card">
+
+    <h2>Secure Portal Access</h2>
+
+    <p>
+      Sign in to Campus Operating System to securely access your school's portal.
+      Administrators, teachers, and authorized staff can manage academic records,
+      school operations, and administrative activities from a single platform.
+    </p>
+
+    <div class="login-actions">
+
+      <button id="teacherLoginBtn" class="login-btn">
+
+        <span class="btn-text">Login to Portal</span>
+
+      </button>
+
+    </div>
+
+  </div>
+
+</section>
+
+
+<!-- ===== LOGIN POPUP ===== -->
+<div id="loginPopup" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+  <div class="bg-white p-6 rounded-xl w-80">
+    <h3 class="text-lg font-bold mb-4 text-center text-blue-700">Login</h3>
+
+   <input
+  type="email"
+  id="loginEmail"
+  placeholder="Enter your email"
+  class="w-full p-3 border rounded-lg mb-4 focus:ring focus:ring-blue-300"
+   />
+
+<input
+  type="password"
+  id="loginPassword"
+  placeholder="Enter your password"
+  class="w-full p-3 border rounded-lg mb-4 focus:ring focus:ring-blue-300"
+/>
+      
+    <div class="flex justify-end gap-2">
+      <button id="loginCancel" class="px-4 py-2 rounded-lg bg-gray-300 hover:bg-gray-400">Cancel</button>
+      <button id="loginSubmit" class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700">Login</button>
+    </div>
+
+    <div id="loading-spinner" class="hidden">
+  <div class="fancy-loader"></div>
+  <div>Loading...</div>
+</div>
+
+    <p id="loginError" class="text-red-600 mt-2 text-sm hidden">Invalid credentials </p>
+  </div>
+</div>
+
+
+<!-- ===== CONTACT ===== -->
+<section id="contact" class="contact">
+
+  <h3>Contact Campus Operating System</h3>
+
+  <p>
+    Interested in using Campus Operating System for your school?
+
+    Contact our team to learn how our platform can help you manage students, teachers, classes, subjects, examination results, report cards, school fees, and streamline daily school administration.
+  </p>
+
+  <!-- WhatsApp -->
+  <a
+    id="whatsappBtn"
+    href="https://wa.me/2347048994402?text=Hello%20Campus%20Operating%20System,%20I%20would%20like%20to%20learn%20more%20about%20your%20school%20management%20software."
+    target="_blank"
+    rel="noopener noreferrer">
+
+    <span class="icon">💬</span>
+    Chat With Us on WhatsApp
+
+  </a>
+
+  <p>OR</p>
+
+  <!-- Call -->
+  <a
+    id="callBtn"
+    href="tel:+2347048994402">
+
+    <span class="icon">📞</span>
+    Call Our Team
+
+  </a>
+
+</section>
+
+
+<!-- ===== FOOTER ===== -->
+<footer class="bg-gray-900 text-white text-center py-10">
+
+  <h4 class="text-lg font-bold">
+    Campus Operating System
+  </h4>
+
+  <p class="text-gray-400 mt-2">
+    Modern School Management Software for Primary and Secondary Schools
+  </p>
+
+  <p class="text-gray-500 text-sm mt-4">
+    © 2026 Campus Operating System. All rights reserved.
+  </p>
+
+</footer>
+
+  <script>
+    // Hamburger toggle
+    const hamburger = document.getElementById('hamburger');
+    const navLinks = document.getElementById('navLinks');
+    hamburger.addEventListener('click', () => {
+      navLinks.classList.toggle('active');
+      hamburger.classList.toggle('active');
+    });
+
+    // Smooth scroll and close menu when a nav link is clicked
+    document.querySelectorAll('.nav-links a').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const targetId = link.getAttribute('href').slice(1);
+        const targetSection = document.getElementById(targetId);
+        if (targetSection) {
+          targetSection.scrollIntoView({ behavior: 'smooth' });
+          navLinks.classList.remove('active');
+          hamburger.classList.remove('active');
+        }
+      });
+    });
+
+    // Smooth scroll for hero buttons
+    document.querySelectorAll('.hero-buttons a, .scroll-indicator a').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const targetId = link.getAttribute('href').slice(1);
+        const targetSection = document.getElementById(targetId);
+        if (targetSection) {
+          targetSection.scrollIntoView({ behavior: 'smooth' });
+        }
+      });
+    });
+
+    // Navbar shadow on scroll
+    const navbar = document.getElementById('navbar');
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 20) navbar.classList.add('scrolled');
+      else navbar.classList.remove('scrolled');
+    });
+
+//SUPABASE KEY N URL
+  const SUPABASE_URL = "https://irelkjvppoisvjpopdpb.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlyZWxranZwcG9pc3ZqcG9wZHBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYzNTUwMDAsImV4cCI6MjA4MTkzMTAwMH0.osF4wEZ-zm3cXScD1W8gMOkG81O2TbDJ8L47YvIIryw";
+
+  const supabaseClient = supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+  );
+
+//LOGIN
+document.addEventListener("DOMContentLoaded", () => {
+
+  const loginSubmit = document.getElementById("loginSubmit");
+  const loginPopup = document.getElementById("loginPopup");
+  const loginCancel = document.getElementById("loginCancel");
+  const loginEmail = document.getElementById("loginEmail");
+  const loginPassword = document.getElementById("loginPassword");
+  const loginError = document.getElementById("loginError");
+  const teacherLoginBtn = document.getElementById("teacherLoginBtn");
+
+  console.log("Login script initialized");
+
+  // Open Login Popup
+  function openLoginPopup() {
+    loginPopup.classList.remove("hidden");
+    loginEmail.value = "";
+    loginPassword.value = "";
+    loginError.classList.add("hidden");
+    loginError.textContent = "";
+    loginEmail.focus();
+  }
+
+  if (teacherLoginBtn) {
+    teacherLoginBtn.addEventListener("click", openLoginPopup);
+  }
+
+  if (loginCancel) {
+    loginCancel.addEventListener("click", () => {
+      loginPopup.classList.add("hidden");
+    });
+  }
+
+// Login Submit
+if (loginSubmit) {
+  loginSubmit.addEventListener("click", async () => {
+
+    const input = loginEmail.value.trim();
+    const password = loginPassword.value.trim();
+
+    loginError.classList.add("hidden");
+    loginError.textContent = "";
+
+    if (!input || !password) {
+      loginError.textContent = "Enter email or student ID and password";
+      loginError.classList.remove("hidden");
+      return;
+    }
+
+    // Detect student vs staff login
+    const isStudent = !input.includes("@");
+
+    const email = isStudent
+      ? `${input.toLowerCase()}@student.school.local`
+      : input;
+
+    try {
+      showSpinner("Signing you in...");
+
+      // 🔐 AUTH LOGIN
+      const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error || !data?.user) {
+        hideSpinner();
+        loginError.textContent = "Invalid credentials";
+        loginError.classList.remove("hidden");
+        return;
+      }
+
+      const user = data.user;
+
+      // SINGLE SOURCE OF TRUTH ROLE
+      const { data: role, error: roleError } =
+        await supabaseClient.rpc("current_user_role");
+
+      if (roleError) {
+        hideSpinner();
+        loginError.textContent = "Role check failed";
+        loginError.classList.remove("hidden");
+        return;
+      }
+
+      // ROUTING LOGIC (ALL ROLES)
+      switch (role) {
+
+        case "admin":
+          showSpinner("Loading dashboard...");
+          window.location.href = "dashboard.html";
+          return;
+
+        case "teacher":
+          showSpinner("Loading dashboard...");
+          window.location.href = "dashboard.html";
+          return;
+
+        case "student":
+          showSpinner("Loading dashboard...");
+          window.location.href = "dashboard.html";
+          return;
+
+        default:
+          hideSpinner();
+          loginError.textContent = "No role assigned";
+          loginError.classList.remove("hidden");
+          return;
+      }
+
+    } catch (err) {
+      console.error("Login error:", err);
+      hideSpinner();
+      loginError.textContent = "Login failed";
+      loginError.classList.remove("hidden");
+    }
+  });
+}
+});
+
+
+//=========================
+//SPINNER LOGIC
+//==========================
+const spinner = document.getElementById("loading-spinner");
+
+function showSpinner(message = "Uploading... Please wait") {
+  if (!spinner) return;
+  spinner.querySelector("div:last-child").textContent = message;
+  spinner.classList.remove("hidden");
+}
+
+function hideSpinner() {
+  spinner?.classList.add("hidden");
+}
+
+
+  </script>
+  
+</body>
+</html>
