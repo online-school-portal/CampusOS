@@ -2,4 +2,4 @@ User-agent: *
 
 Allow: /
 
-Sitemap: https://www.campusoperatingsystem.com/sitemap.xml
+Sitemap: https://campusoperatingsystem.com/sitemap.xml
