@@ -529,6 +529,140 @@ if (
 
 }
 
+  /* ===== LOGIN POPUP ===== */
+
+  .login-popup {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0,0,0,0.5);
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+  }
+
+ .login-popup.show {
+   display: flex;
+ }
+
+ .login-popup-content {
+  background-color:white;
+  padding: var(--s3);
+  border-radius: 0.75rem;
+  width: 20rem;
+}
+
+ .login-popup-content h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: var(--s2);
+  text-align: center;
+  color: var(--brand-blue);
+ }
+
+ .login-popup-content input {
+   width: 100%;
+   padding: 0.75rem;
+   border: 1px solid #d1d5db;
+   border-radius: var(--s1);
+   margin-bottom: var(--s2);
+   font-family: 'Poppins', sans-serif;
+   color: var(--text-body);
+   font-size: 0.95rem;
+   outline: none;
+   transition: border-color 0.2s, box-shadow 0.2s;
+ }
+ 
+ .login-popup-content input:focus {
+   border-color: var(--brand-blue);
+   box-shadow: 0 0 0 3px rgba(2,132,199,0.2);
+ }
+ 
+ .login-popup-buttons {
+   display: flex;
+   justify-content: flex-end;
+   gap: var(--s1);
+ }
+ 
+ #loginCancel {
+  padding: var(--s1) var(--s2);
+  border-radius: var(--s1);
+  background-color: #d1d5db;
+  font-family: 'Poppins', Sans-Serif;
+  color: var(--text-h3);
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+ }
+ 
+ #loginCancel:hover {
+  background-color: #9ca3af;
+ }
+ 
+ #loginSubmit {
+   padding: var(--s1) var(--s2);
+   border-radius: var(--s1);
+   background-color: var(--brand-blue);
+   color: white;
+   font-family: 'Poppins', Sans-Serif;
+   font-weight: 500;
+   border: none;
+   cursor: pointer;
+   transition: border-color 0.2s;
+ }
+ 
+ #loginSubmit:hover {
+   background-color: var(--brand-accent);
+ }
+ 
+ #loading-spinner {
+   display: none;
+   text-align: center;
+   margin-top: var(--s2);
+ }
+ 
+ #loading-spinner.show {
+   display: block;
+ }
+ 
+ #loginError {
+   color: #dc2626;
+   margin-top: var(--s1);
+   font-size: 0.875rem;
+   display: none;
+ }
+ 
+ #loginError.show {
+   display: block;
+ }
+ 
+   /* ===== FOOTER ===== */
+   .footer {
+    background-color: #111827;
+    color: white;
+    text-align: center;
+    padding-top: 2.5rem;
+    padding-bottom: 2.5rem;
+  }
+  
+  .footer h4 {
+   font-size: 1.125rem;
+   line-height: 1.75rem;
+   font-weight: 700;
+  }
+  
+  .footer p {
+    color: #BDBDBD;
+    margin-top: var(--s1);
+  }
+  
+  .footer-copyright {
+    color: #6b7280;
+    font-size: 0.875rem;
+    margin-top: var(--s2);
+  }
+ 
   /* ===== WHATSAPP & CONTACT BUTTONS ===== */
   #whatsappBtn, #callBtn {
     display: inline-flex;
@@ -603,6 +737,7 @@ if (
     .btn-primary, .btn-secondary { width: 100%; text-align: center; }
     #whatsappBtn, #callBtn { display: flex; width: 100%; margin: var(--s1) 0; }
   }
+  
 </style>
 
 </head>
@@ -801,35 +936,33 @@ if (
 
 
 <!-- ===== LOGIN POPUP ===== -->
-<div id="loginPopup" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-  <div class="bg-white p-6 rounded-xl w-80">
-    <h3 class="text-lg font-bold mb-4 text-center text-blue-700">Login</h3>
+<div id="loginPopup" class="login-popup">
+  <div class="login-popup-content">
+    <h3>Login</h3>
 
    <input
   type="email"
   id="loginEmail"
   placeholder="Enter your email"
-  class="w-full p-3 border rounded-lg mb-4 focus:ring focus:ring-blue-300"
    />
 
 <input
   type="password"
   id="loginPassword"
   placeholder="Enter your password"
-  class="w-full p-3 border rounded-lg mb-4 focus:ring focus:ring-blue-300"
 />
       
-    <div class="flex justify-end gap-2">
-      <button id="loginCancel" class="px-4 py-2 rounded-lg bg-gray-300 hover:bg-gray-400">Cancel</button>
-      <button id="loginSubmit" class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700">Login</button>
+    <div class="login-popup-buttons">
+      <button id="loginCancel">Cancel</button>
+      <button id="loginSubmit">Login</button>
     </div>
 
-    <div id="loading-spinner" class="hidden">
+    <div id="loading-spinner">
   <div class="fancy-loader"></div>
   <div>Loading...</div>
 </div>
 
-    <p id="loginError" class="text-red-600 mt-2 text-sm hidden">Invalid credentials </p>
+    <p id="loginError">Invalid credentials </p>
   </div>
 </div>
 
@@ -873,17 +1006,17 @@ if (
 
 
 <!-- ===== FOOTER ===== -->
-<footer class="bg-gray-900 text-white text-center py-10">
+<footer class="footer">
 
-  <h4 class="text-lg font-bold">
+  <h4>
     Campus Operating System
   </h4>
 
-  <p class="text-gray-400 mt-2">
+  <p>
     Modern School Management Software for Primary and Secondary Schools
   </p>
 
-  <p class="text-gray-500 text-sm mt-4">
+  <p class="footer-copyright">
     © 2026 Campus Operating System. All rights reserved.
   </p>
 
@@ -955,12 +1088,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Open Login Popup
   function openLoginPopup() {
-    loginPopup.classList.remove("hidden");
+    loginPopup.classList.add("show");
     loginEmail.value = "";
     loginPassword.value = "";
-    loginError.classList.add("hidden");
+    loginError.classList.remove("show");
     loginError.textContent = "";
     loginEmail.focus();
+  }
+
+  // ========== Close Popup ==========
+  function closeLoginPopup() {
+    loginPopup.classList.remove("show");
   }
 
   if (teacherLoginBtn) {
@@ -968,9 +1106,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if (loginCancel) {
-    loginCancel.addEventListener("click", () => {
-      loginPopup.classList.add("hidden");
-    });
+    loginCancel.addEventListener("click", closeLoginPopup);
   }
 
 // Login Submit
@@ -980,12 +1116,12 @@ if (loginSubmit) {
     const input = loginEmail.value.trim();
     const password = loginPassword.value.trim();
 
-    loginError.classList.add("hidden");
+    loginError.classList.remove("show");
     loginError.textContent = "";
 
     if (!input || !password) {
       loginError.textContent = "Enter email or student ID and password";
-      loginError.classList.remove("hidden");
+      loginError.classList.add("show");
       return;
     }
 
@@ -1008,7 +1144,7 @@ if (loginSubmit) {
       if (error || !data?.user) {
         hideSpinner();
         loginError.textContent = "Invalid credentials";
-        loginError.classList.remove("hidden");
+        loginError.classList.add("show");
         return;
       }
 
@@ -1021,7 +1157,7 @@ if (loginSubmit) {
       if (roleError) {
         hideSpinner();
         loginError.textContent = "Role check failed";
-        loginError.classList.remove("hidden");
+        loginError.classList.add("show");
         return;
       }
 
@@ -1046,7 +1182,7 @@ if (loginSubmit) {
         default:
           hideSpinner();
           loginError.textContent = "No role assigned";
-          loginError.classList.remove("hidden");
+          loginError.classList.add("show");
           return;
       }
 
@@ -1054,7 +1190,7 @@ if (loginSubmit) {
       console.error("Login error:", err);
       hideSpinner();
       loginError.textContent = "Login failed";
-      loginError.classList.remove("hidden");
+      loginError.classList.add("show");
     }
   });
 }
@@ -1069,11 +1205,11 @@ const spinner = document.getElementById("loading-spinner");
 function showSpinner(message = "Uploading... Please wait") {
   if (!spinner) return;
   spinner.querySelector("div:last-child").textContent = message;
-  spinner.classList.remove("hidden");
+  spinner.classList.add("show");
 }
 
 function hideSpinner() {
-  spinner?.classList.add("hidden");
+  spinner?.classList.remove("show");
 }
 
 

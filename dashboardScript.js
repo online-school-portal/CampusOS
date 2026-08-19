@@ -200,7 +200,7 @@ async function loadSchoolLogo() {
     if (data) {
       const img = document.getElementById("schoolLogo");
       img.src = data;
-      img.classList.remove("hidden");
+      img.classList.add("show");
     }
 
   } catch (err) {
@@ -596,7 +596,7 @@ function selectStudent({ student, selectId, textId, dropdownId }) {
 
   text.innerHTML = `
     <img src="${student.image_url || "default-avatar.png"}"
-         class="student-avatar">
+         class="student-avatar-sm">
     ${student.full_name}
   `;
 
@@ -932,7 +932,7 @@ function refreshIcons() {
 // INTERNAL HELPERS
 function show(preview, placeholder) {
 
-  preview.classList.remove("hidden");
+  preview.classList.add("show");
 
   placeholder.classList.add("hidden");
 
@@ -942,7 +942,7 @@ function reset(preview, placeholder) {
 
   preview.src = "";
 
-  preview.classList.add("hidden");
+  preview.classList.remove("show");
 
   placeholder.classList.remove("hidden");
 
@@ -1277,12 +1277,12 @@ function showSpinner(message = "Loading... Please wait") {
   const text = spinner.querySelector("div:last-child");
   if (text) text.textContent = message;
 
-  spinner.classList.remove("hidden");
+  spinner.classList.add("show");
 }
 
 function hideSpinner() {
   const spinner = document.getElementById("loading-spinner");
-  spinner?.classList.add("hidden");
+  spinner?.classList.remove("show");
 }
 
 
@@ -1374,11 +1374,7 @@ function showToast(message, type = "success") {
     const toast = document.createElement("div");
 
     toast.className =
-        `fixed top-5 right-5 z-[9999] px-5 py-3 rounded-lg shadow-lg text-white font-semibold ${
-            type === "success"
-                ? "bg-green-600"
-                : "bg-red-600"
-        }`;
+        type === "success" ? "toast toast-success" : "toast toast-error";
 
     toast.textContent = message;
 
@@ -1824,7 +1820,7 @@ async function loadStudents(list = allStudents) {
   } catch (err) {
     console.error(err);
     container.innerHTML =
-      `<p class="text-red-500 p-4 text-center">Failed to load students.</p>`;
+      `<p class="dy-error">Failed to load students.</p>`;
   }
 }
 
@@ -2172,7 +2168,7 @@ initCameraUploader({
 
 // OPEN MODAL
 document.getElementById("editStudentModal")
-  .classList.remove("hidden");
+  .classList.add("show");
 
 // CLOSE MODAL
 document.getElementById("closeStudentModal").onclick = () => {
@@ -2184,7 +2180,7 @@ document.getElementById(
 form.dataset.authId = "";
 
   document.getElementById("editStudentModal")
-    .classList.add("hidden");
+    .classList.remove("show");
 
   resetImagePreview(config);
 
@@ -2755,7 +2751,7 @@ document.getElementById("editStudentForm").addEventListener("submit", async (e) 
 
         document
             .getElementById("editStudentModal")
-            .classList.add("hidden");
+            .classList.remove("show");
 
         showToast(
             "Student updated successfully!",
@@ -3215,17 +3211,6 @@ async function addTeacher(payload) {
   await fetchTeachers();
 }
 
-//UPDATE TEACHER PAYLOAD FUNCTION
-/*async function updateTeacher(id, payload) {
-  const { error } = await supabaseClient
-    .from("teachers")
-    .update(payload)
-    .eq("id", id);
-
-  if (error) return alert(error.message);
-  await fetchTeachers();
-} */
-
 //LOAD CLASSES FOR TEACHER ASSIGNED CLASS
 async function loadTeacherClassCheckboxes() {
 
@@ -3301,7 +3286,7 @@ async function renderEditTeacherClassCheckboxes() {
 
     container.innerHTML =
         classes.map(cls => `
-            <label class="flex items-center gap-2">
+            <label class="dy-row-flex">
 
                 <input
                     type="checkbox"
@@ -3571,7 +3556,7 @@ async function openEditTeacherModal(idEncoded) {
 
         document
             .getElementById("editTeacherModal")
-            .classList.remove("hidden");
+            .classList.add("show");
 
         // CLOSE MODAL
 
@@ -3587,7 +3572,7 @@ async function openEditTeacherModal(idEncoded) {
 
                 document
                     .getElementById("editTeacherModal")
-                    .classList.add("hidden");
+                    .classList.remove("show");
 
                 resetImagePreview({
 
@@ -4139,7 +4124,7 @@ document.getElementById("editTeacherForm").addEventListener("submit", async (e) 
 
         document
             .getElementById("editTeacherModal")
-            .classList.add("hidden");
+            .classList.remove("show");
 
         showToast(
             "Teacher updated successfully!",
@@ -4234,20 +4219,21 @@ function displayRegisteredSubjects() {
 
   if (!allSubjects.length) {
     container.innerHTML =
-      `<p class="text-gray-500 text-center">No subjects found.</p>`;
+      `<p class="empty-state">No subjects found.</p>`;
     return;
   }
 
   allSubjects.forEach(subj => {
     const div = document.createElement("div");
-    div.className = "flex items-center justify-between mb-2 border p-2 rounded";
+    div.className = "list-row";
 
     const nameSpan = document.createElement("span");
+    nameSpan.className = "list-row-name";
     nameSpan.textContent = subj.name;
 
     const deleteBtn = document.createElement("button");
     deleteBtn.textContent = "Delete";
-    deleteBtn.className = "bg-red-500 text-white px-2 py-1 rounded";
+    deleteBtn.className = "btn-danger";
 
 deleteBtn.onclick = async () => {
 
@@ -4502,76 +4488,48 @@ function displayRegisteredClasses() {
 
   if (!allClasses.length) {
     container.innerHTML =
-      `<p class="text-gray-500 text-center">No classes registered yet.</p>`;
+      `<p class="empty-state">No classes registered yet.</p>`;
     updateClassesCount([]);
     return;
   }
 
   allClasses.forEach(cls => {
     const div = document.createElement("div");
-    div.className = "flex items-center justify-between mb-2 border p-2 rounded";
+    div.className = "list-row";
 
     const nameSpan = document.createElement("span");
+    nameSpan.className = "list-row-name";
     nameSpan.textContent = cls.name;
 
     const deleteBtn = document.createElement("button");
     deleteBtn.textContent = "Delete";
-    deleteBtn.className = "bg-red-500 text-white px-2 py-1 rounded";
+    deleteBtn.className = "btn-danger";
 
-deleteBtn.onclick = async () => {
+    deleteBtn.onclick = async () => {
+      if (!confirm(`Delete "${cls.name}"?`)) return;
 
-    if (!confirm(`Delete "${subj.name}"?`)) return;
-
-    try {
-
-        showSpinner(`Deleting "${subj.name}"...`);
-
+      try {
+        showSpinner(`Deleting "${cls.name}"...`);
         deleteBtn.disabled = true;
 
         const { error } = await supabaseClient
-            .from("subjects")
-            .delete()
-            .eq("id", subj.id);
+          .from("classes")
+          .delete()
+          .eq("id", cls.id);
 
-        if (error) {
+        if (error) throw error;
 
-            throw error;
+        showToast("Class deleted successfully.", "success");
+        await fetchClasses();
 
-        }
-
-        showSpinner("Refreshing subjects...");
-
-        const classId =
-            document.getElementById("classSelect")?.value;
-
-        allSubjects =
-            await loadSubjectsByClass(classId);
-
-        displayRegisteredSubjects();
-
-        showToast(
-            "Subject deleted successfully.",
-            "success"
-        );
-
-    } catch (err) {
-
+      } catch (err) {
         console.error(err);
-
-        showToast(
-            getFriendlyError(err),
-            "error"
-        );
-
-    } finally {
-
+        showToast(getFriendlyError(err), "error");
+      } finally {
         hideSpinner();
-
         deleteBtn.disabled = false;
-
-    }
-
-};
+      }
+    };
 
     div.appendChild(nameSpan);
     div.appendChild(deleteBtn);
@@ -4736,7 +4694,7 @@ function displayRegisteredFeeTypes() {
     if (!allFeeTypes.length) {
 
         container.innerHTML = `
-            <p class="text-gray-500 text-center">
+            <p class="empty-state">
                 No fee types registered yet.
             </p>
         `;
@@ -4750,12 +4708,12 @@ function displayRegisteredFeeTypes() {
         const div =
             document.createElement("div");
 
-        div.className =
-            "flex items-center justify-between mb-2 border p-2 rounded";
+        div.className = "list-row";
 
         const span =
             document.createElement("span");
 
+        span.className = "list-row-name";
         span.textContent = fee.name;
 
         const deleteBtn =
@@ -4763,8 +4721,7 @@ function displayRegisteredFeeTypes() {
 
         deleteBtn.textContent = "Delete";
 
-        deleteBtn.className =
-            "bg-red-500 text-white px-2 py-1 rounded";
+        deleteBtn.className = "btn-danger";
 
 deleteBtn.onclick = async () => {
 
@@ -4965,7 +4922,7 @@ async function fetchClassFees() {
     if (!classId || !session || !term) {
 
         container.innerHTML = `
-            <p class="text-gray-500 text-center">
+            <p class="empty-state">
                 Select class, session and term.
             </p>
         `;
@@ -5010,7 +4967,7 @@ function displayAssignedFees() {
     if (!allClassFees.length) {
 
         container.innerHTML = `
-            <p class="text-gray-500 text-center">
+            <p class="empty-state">
                 No fees assigned yet.
             </p>
         `;
@@ -5038,7 +4995,7 @@ function displayAssignedFees() {
             </span>
 
             <button
-                class="bg-red-500 text-white px-2 py-1 rounded"
+                class="btn-danger"
                 onclick="deleteClassFee('${fee.id}')">
                 Delete
             </button>
@@ -5317,7 +5274,7 @@ async function fetchStudentLedger() {
     if (!session || !term || !classId || !studentId) {
 
         container.innerHTML = `
-            <p class="text-gray-500 text-center">
+            <p class="empty-state">
                 Select session, term, class and student.
             </p>
         `;
@@ -5444,7 +5401,7 @@ currentStudentLedger = ledger;
     if (!ledger.length) {
 
         container.innerHTML = `
-            <p class="text-gray-500 text-center">
+            <p class="empty-state">
                 No fees assigned.
             </p>
         `;
@@ -5459,7 +5416,7 @@ currentStudentLedger = ledger;
 
     let html = `
 
-<table class="table-auto w-full border">
+<table class="dy-table">
 
 <thead>
 
@@ -5503,7 +5460,7 @@ currentStudentLedger = ledger;
 
 ${item.balance === 0
 
-? `<span class="text-green-600 font-bold">🟢 Paid</span>`
+? `<span class="status-paid">Paid</span>`
 
 : `₦${item.balance.toLocaleString()}`
 
@@ -5516,7 +5473,7 @@ ${item.balance === 0
 ${item.balance === 0
 
 ? `<button
-class="bg-green-600 text-white px-3 py-1 rounded cursor-not-allowed"
+class="btn-success"
 disabled>
 
 🟢 Paid
@@ -5524,7 +5481,7 @@ disabled>
 </button>`
 
 : `<button
-class="bg-blue-600 text-white px-3 py-1 rounded"
+class="btn-primary"
 
 onclick="openPaymentModal(
 '${item.classFeeId}',
@@ -5552,7 +5509,7 @@ Record Payment
 
 <tfoot>
 
-<tr class="font-bold bg-gray-100">
+<tr class="domain-title">
 
 <td>Total</td>
 
@@ -5576,12 +5533,12 @@ Record Payment
 
 <td>
 
-<div class="flex gap-2 justify-center flex-wrap">
+<div class="dy-actions">
 
 ${totalBalance > 0 ? `
 
 <button
-class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded"
+class="btn-success"
 
 onclick="openPayAllModal()">
 
@@ -5592,7 +5549,7 @@ Pay All
 ` : ""}
 
 <button
-class="bg-gray-700 text-white px-3 py-2 rounded"
+class="btn-cancel"
 
 onclick="openPaymentHistory()">
 
@@ -5654,7 +5611,7 @@ resetImagePreview({
 //Open modal
 function openPaymentModal(classFeeId, balance, feeName = "") {
 
-    document.getElementById("paymentModal").classList.remove("hidden");
+    document.getElementById("paymentModal").classList.add("show");
 
     document.getElementById("paymentClassFeeId").value = classFeeId;
 
@@ -5674,7 +5631,7 @@ function closePaymentModal() {
 
     document
         .getElementById("paymentModal")
-        .classList.add("hidden");
+        .classList.remove("show");
 
     document.getElementById("paymentMethod").selectedIndex = 0;
 
@@ -5952,7 +5909,7 @@ function openPayAllModal() {
     if (!unpaidFees.length) {
 
         container.innerHTML = `
-            <p class="text-center text-green-600 font-semibold">
+            <p class="status-paid">
                 All fees have already been paid.
             </p>
         `;
@@ -5961,7 +5918,7 @@ function openPayAllModal() {
 
         document
             .getElementById("payAllModal")
-            .classList.remove("hidden");
+            .classList.add("show");
 
         return;
 
@@ -5975,9 +5932,9 @@ function openPayAllModal() {
 
         container.innerHTML += `
 
-<label class="flex items-center justify-between border rounded-lg p-3 cursor-pointer hover:bg-gray-50">
+<label class="dy-row-between">
 
-    <div class="flex items-center gap-3">
+    <div class="dy-row-flex">
 
         <input
             type="checkbox"
@@ -5993,7 +5950,7 @@ function openPayAllModal() {
                 ${fee.feeName}
             </p>
 
-            <p class="text-sm text-gray-500">
+            <p class="dy-muted-sm">
                 Outstanding Balance
             </p>
 
@@ -6016,7 +5973,7 @@ function openPayAllModal() {
 
     document
         .getElementById("payAllModal")
-        .classList.remove("hidden");
+        .classList.add("show");
 
 }
 
@@ -6025,7 +5982,7 @@ function closePayAllModal() {
 
     document
         .getElementById("payAllModal")
-        .classList.add("hidden");
+        .classList.remove("show");
 
     document.getElementById("payAllMethod").selectedIndex = 0;
 
@@ -6259,7 +6216,7 @@ async function openPaymentHistory() {
 
     document
         .getElementById("paymentHistoryModal")
-        .classList.remove("hidden");
+        .classList.add("show");
 
     await loadPaymentHistory();
 
@@ -6272,7 +6229,7 @@ document
 
     document
         .getElementById("paymentHistoryModal")
-        .classList.add("hidden");
+        .classList.remove("show");
 
 });
 
@@ -6287,7 +6244,7 @@ function openPaymentProof(imageUrl) {
 
     document
         .getElementById("paymentProofPreviewModal")
-        .classList.remove("hidden");
+        .classList.add("show");
 
 }
 
@@ -6297,7 +6254,7 @@ document
 
     document
         .getElementById("paymentProofPreviewModal")
-        .classList.add("hidden");
+        .classList.remove("show");
 
     document
         .getElementById("paymentProofPreviewImage")
@@ -6331,7 +6288,7 @@ async function loadPaymentHistory(){
     ){
 
         container.innerHTML=`
-        <p class="text-gray-500 text-center">
+        <p class="empty-state">
 
         Select session, term, class and student.
 
@@ -6390,7 +6347,7 @@ async function loadPaymentHistory(){
         console.error(err);
 
         container.innerHTML=`
-        <p class="text-red-500 text-center">
+        <p class="dy-error">
 
         Failed to load payment history.
 
@@ -6415,7 +6372,7 @@ function renderPaymentHistory(history) {
     if (!history.length) {
 
         container.innerHTML = `
-            <p class="text-gray-500 text-center py-8">
+            <p class="empty-state">
                 No payment history found.
             </p>
         `;
@@ -6424,15 +6381,15 @@ function renderPaymentHistory(history) {
     }
 
     let html = `
-    <table class="table-auto w-full border border-gray-300 text-sm">
-        <thead class="bg-gray-100">
+    <table class="dy-table">
+        <thead>
             <tr>
-                <th class="border px-3 py-2">Date</th>
-                <th class="border px-3 py-2">Fee Type</th>
-                <th class="border px-3 py-2">Amount</th>
-                <th class="border px-3 py-2">Method</th>
-                <th class="border px-3 py-2">Proof</th>
-                <th class="border px-3 py-2 text-center">Action</th>
+                <th class="dy-input">Date</th>
+                <th class="dy-input">Fee Type</th>
+                <th class="dy-input">Amount</th>
+                <th class="dy-input">Method</th>
+                <th class="dy-input">Proof</th>
+                <th class="dy-input-sm">Action</th>
             </tr>
         </thead>
         <tbody>
@@ -6441,44 +6398,44 @@ function renderPaymentHistory(history) {
     history.forEach(payment => {
 
         html += `
-        <tr class="hover:bg-gray-50">
+        <tr class="">
 
-            <td class="border px-3 py-2">
+            <td class="dy-input">
                 ${new Date(payment.payment_date).toLocaleDateString()}
             </td>
 
-            <td class="border px-3 py-2">
+            <td class="dy-input">
                 ${payment.class_fees?.fee_types?.name || "-"}
             </td>
 
-            <td class="border px-3 py-2 font-semibold">
+            <td class="dy-input">
                 ₦${Number(payment.amount).toLocaleString()}
             </td>
 
-            <td class="border px-3 py-2">
+            <td class="dy-input">
                 ${payment.payment_method}
             </td>
 
-            <td class="border px-3 py-2 text-center">
+            <td class="dy-input-sm">
 
                 ${
                     payment.proof_url
                     ? `
                         <img
                             src="${payment.proof_url}"
-                            class="w-12 h-12 rounded border object-cover cursor-pointer hover:scale-105 transition mx-auto"
+                            class="dy-thumb"
                             onclick="openPaymentProof('${payment.proof_url}')"
                         >
                     `
-                    : `<span class="text-gray-400">—</span>`
+                    : `<span class="">—</span>`
                 }
 
             </td>
 
-            <td class="border px-3 py-2 text-center">
+            <td class="dy-input-sm">
 
                 <button
-                    class="text-red-600 hover:text-red-800 font-semibold"
+                    class="dy-link-danger"
                     onclick="confirmDeletePayment('${payment.id}')">
 
                     Delete
@@ -6649,7 +6606,7 @@ async function fetchAvailableReports() {
 
         container.innerHTML = `
 
-        <p class="text-gray-500 text-center">
+        <p class="empty-state">
 
             Select a class.
 
@@ -6731,7 +6688,7 @@ async function fetchAvailableReports() {
 
         container.innerHTML = `
 
-        <p class="text-red-500 text-center">
+        <p class="dy-error">
 
             Failed to load reports.
 
@@ -6839,7 +6796,7 @@ function renderAvailableReports(reports){
 
         container.innerHTML = `
 
-        <p class="text-gray-500 text-center">
+        <p class="empty-state">
 
         No financial reports found.
 
@@ -6930,7 +6887,7 @@ function renderAvailableReports(reports){
 
             <button
 
-            class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded font-semibold"
+            class="btn-danger"
 
             onclick="deleteFinancialReport(
 
@@ -8847,7 +8804,7 @@ function renderSubjectInputs(subjects) {
     const row = document.createElement("div");
 
     row.className =
-  "subject-row border p-3 rounded-xl mb-4 grid grid-cols-1 gap-3 sm:items-center";
+  "subject-row dy-subject-card";
 
 row.style.gridTemplateColumns =
   window.innerWidth >= 640
@@ -8869,7 +8826,7 @@ row.style.gridTemplateColumns =
             max="${part.max}"
             name="${part.key}_${subj.id}"
             placeholder="${part.label} (${part.max})"
-            class="subject-input border p-2 rounded-xl w-full"
+            class="dy-input subject-input"
           >
         </div>
       `;
@@ -9609,7 +9566,7 @@ async function renderManageResults() {
   if (!classId) return;
 
   manageStudentContainer.innerHTML =
-    "<div class='p-10 text-center text-gray-400 animate-pulse'>Fetching records...</div>";
+    "<div class='p-10 text-center  animate-pulse'>Fetching records...</div>";
 
   try {
     const { data: role } = await supabaseClient.rpc("current_user_role");
@@ -9635,7 +9592,7 @@ window.currentUserRole = role;
 
     if (!results.length) {
       manageStudentContainer.innerHTML =
-        `<p class="p-4 text-gray-500 text-center w-full">No results found.</p>`;
+        `<p class="empty-state">No results found.</p>`;
       return;
     }
 
@@ -9674,16 +9631,15 @@ const canDelete =
 const canLock = isAdmin;
 
       const avatar = imageUrl
-        ? `<img src="${imageUrl}" class="w-10 h-10 rounded-full object-cover">`
-        : `<div class="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">
+        ? `<img src="${imageUrl}" class="avatar-circle">`
+        : `<div class="card-avatar">
              ${studentName.charAt(0)}
            </div>`;
 
       const lockBtn = isAdmin
         ? `<button 
              onclick="toggleLockResult('${item.student_id}','${item.class_id}','${item.term}','${item.session}', ${isLocked})"
-             class="py-2 rounded-lg text-[10px] font-black uppercase 
-                    ${isLocked ? 'bg-yellow-50 text-yellow-700' : 'bg-green-50 text-green-700'}">
+             class="${isLocked ? 'btn-unlock' : 'btn-lock'}">
              ${isLocked ? 'Unlock 🔓' : 'Lock ✓'}
            </button>`
         : "";
@@ -9704,10 +9660,10 @@ card.className =
       ${
   isAdmin
     ? `
-      <div class="flex justify-end mb-2">
+      <div class="card-select-row">
         <button
           onclick="toggleResultSelection(this.closest('.data-card'), ${JSON.stringify(item).replace(/"/g, '&quot;')})"
-          class="select-result-btn bg-gray-100 text-gray-700 px-3 py-1 rounded-lg text-[10px] font-black uppercase">
+          class="select-result-btn">
           Select
         </button>
       </div>
@@ -9715,24 +9671,24 @@ card.className =
     : ""
 }
       
-  <div class="flex items-center gap-3 mb-4 border-b pb-3">
+  <div class="result-card-header">
     ${avatar}
     <div>
-      <h4 class="font-bold text-gray-800">${studentName}</h4>
-      <p class="text-xs text-gray-500">${item.term} • ${item.session}</p>
+      <h4 class="">${studentName}</h4>
+      <p class="">${item.term} • ${item.session}</p>
     </div>
   </div>
   
-  <div class="grid grid-cols-4 gap-2">
+  <div class="card-actions-grid">
 
     ${
       canView
         ? `<button 
             onclick="viewResultPreview('${item.student_id}','${item.class_id}','${item.term}','${item.session}')"
-            class="bg-blue-50 text-blue-700 py-2 rounded-lg text-[10px] font-black uppercase">
+            class="btn-view">
             View
           </button>`
-        : `<button disabled class="bg-gray-100 text-gray-400 py-2 rounded-lg text-[10px] font-black uppercase opacity-50">
+        : `<button disabled class="btn-locked-state">
             Locked
           </button>`
     }
@@ -9741,7 +9697,7 @@ card.className =
       canEdit
         ? `<button 
             onclick="handleEditClick('${item.student_id}','${item.class_id}','${item.term}','${item.session}')"
-            class="bg-gray-50 text-gray-700 py-2 rounded-lg text-[10px] font-black uppercase">
+            class="btn-edit">
             Edit
           </button>`
         : ""
@@ -9751,7 +9707,7 @@ card.className =
       canDelete
         ? `<button 
             onclick="deleteResult('${item.student_id}','${item.class_id}','${item.term}','${item.session}')"
-            class="bg-red-50 text-red-600 py-2 rounded-lg text-[10px] font-black uppercase">
+            class="btn-delete">
             Delete
           </button>`
         : ""
@@ -9761,8 +9717,7 @@ card.className =
       canLock
         ? `<button 
             onclick="toggleLockResult('${item.student_id}','${item.class_id}','${item.term}','${item.session}', ${isLocked})"
-            class="py-2 rounded-lg text-[10px] font-black uppercase 
-              ${isLocked ? 'bg-yellow-50 text-yellow-700' : 'bg-green-50 text-green-700'}">
+            class="${isLocked ? 'btn-unlock' : 'btn-lock'}">
             ${isLocked ? 'Unlock 🔓' : 'Lock ✓'}
           </button>`
         : ""
@@ -9789,7 +9744,7 @@ if (isAdmin) {
   } catch (err) {
     console.error(err);
     manageStudentContainer.innerHTML =
-      `<p class="text-red-500 p-4 text-center">Connection Error.</p>`;
+      `<p class="dy-error">Connection Error.</p>`;
   }
 }
 
@@ -9935,7 +9890,7 @@ const rowsHtml = results.map(subject => {
     total += value;
 
     return `
-      <td class="px-2 py-1 border border-black text-center">
+      <td class="">
         ${value}
       </td>
     `;
@@ -9945,21 +9900,21 @@ const rowsHtml = results.map(subject => {
 
   return `
     <tr>
-      <td class="px-2 py-1 border border-black text-left uppercase">
+      <td class="domain-label">
         ${subject.subject_name}
       </td>
 
       ${caCells}
 
-      <td class="px-2 py-1 border border-black text-center bg-gray-100">
+      <td class="domain-label">
         ${total}
       </td>
 
-      <td class="px-2 py-1 border border-black text-center">
+      <td class="">
         ${grade}
       </td>
 
-      <td class="px-2 py-1 border border-black text-center italic">
+      <td class=" italic">
         ${getComment(grade)}
       </td>
     </tr>
@@ -9968,26 +9923,26 @@ const rowsHtml = results.map(subject => {
 
 // ---------- SUMMARY FOOTER ----------
 const summaryRowHtml = `
-<tr class="bg-gray-200 font-bold">
+<tr class="dy-summary-row">
 
-  <td class="px-2 py-1 border border-black text-center uppercase">
+  <td class="">
     Overall Total
   </td>
 
   <td colspan="${config.parts.length}"
-      class="px-2 py-1 border border-black text-center">
+      class="">
     ${totalMarks}
   </td>
 
-  <td class="px-2 py-1 border border-black text-center">
+  <td class="">
     ${average}%
   </td>
 
-  <td class="px-2 py-1 border border-black text-center">
+  <td class="">
     ${overallGrade}
   </td>
 
-  <td class="px-2 py-1 border border-black text-center italic">
+  <td class=" italic">
     ${getComment(overallGrade)}
   </td>
 
@@ -9997,9 +9952,9 @@ const summaryRowHtml = `
     // ---------- Psychomotor ----------
    const psychomotor = row.psychomotor_domain || {};
     const psychomotorHtml = Object.entries(psychomotor).map(([activity, score]) => {
-      const cols = [100, 85, 75, 65, 55].map(val => `<td class="px-2 py-1 border border-black text-center">${score === val ? "✔" : ""}</td>`).join("");
+      const cols = [100, 85, 75, 65, 55].map(val => `<td class="">${score === val ? "✔" : ""}</td>`).join("");
       return `<tr>
-        <td class="px-2 py-1 border border-black font-bold text-left">${formatName(activity)}</td>
+        <td class="domain-label">${formatName(activity)}</td>
         ${cols}
       </tr>`;
     }).join("");
@@ -10007,9 +9962,9 @@ const summaryRowHtml = `
     // ---------- Affective ----------
    const affective = row.affective_domain || {};
     const affectiveHtml = Object.entries(affective).map(([trait, score]) => {
-      const cols = [100, 85, 75, 65, 55].map(val => `<td class="px-2 py-1 border border-black text-center">${score === val ? "✔" : ""}</td>`).join("");
+      const cols = [100, 85, 75, 65, 55].map(val => `<td class="">${score === val ? "✔" : ""}</td>`).join("");
       return `<tr>
-        <td class="px-2 py-1 border border-black font-bold text-left">${formatName(trait)}</td>
+        <td class="domain-label">${formatName(trait)}</td>
         ${cols}
       </tr>`;
     }).join("");
@@ -10787,125 +10742,125 @@ const subjectFieldsHtml = subjects.map((s, i) => {
         name="${part.key}_${s.subject_id ?? i}"
         value="${value}"
         max="${part.max}"
-        class="border p-2 text-center rounded-lg font-bold"
+        class="dy-score-box"
         placeholder="${part.label}"
       >
     `;
   }).join("");
 
   return `
-    <div class="p-3 border rounded-xl bg-gray-50 mb-3 subject-row"
+    <div class="dy-subject-card subject-row"
          data-subject-id="${s.subject_id ?? i}">
 
-      <label class="block text-[10px] font-black uppercase text-gray-500 mb-2">
+      <label class="dy-label-xs">
         ${s.subject_name ?? "Subject"}
       </label>
 
-      <div class="grid grid-cols-${config.parts.length} gap-3">
+      <div class="dy-grid-3">
         ${inputsHtml}
       </div>
     </div>
   `;
-}).join("") || "<p class='text-xs text-gray-400'>No subjects found</p>";
+}).join("") || "<p class='text-xs '>No subjects found</p>";
 
     // ---------- 2. Psychomotor ----------
     const psychomotorHtml = Object.entries(psychomotor).map(([skill, val]) => `
-      <div class="flex items-center gap-3 mb-2">
-        <label class="flex-1 text-[10px] font-bold uppercase">${skill.replace(/_/g, " ")}</label>
-        <input type="number" name="psych_${skill}" value="${val ?? ""}" class="w-16 text-center border rounded-lg p-1">
+      <div class="dy-row-flex">
+        <label class="btn-sm">${skill.replace(/_/g, " ")}</label>
+        <input type="number" name="psych_${skill}" value="${val ?? ""}" class="dy-input-narrow">
       </div>
-    `).join("") || "<p class='text-xs text-gray-400'>No data</p>";
+    `).join("") || "<p class='text-xs '>No data</p>";
 
     // ---------- 3. Affective ----------
     const affectiveHtml = Object.entries(affective).map(([trait, val]) => `
-      <div class="flex items-center gap-3 mb-2">
-        <label class="flex-1 text-[10px] font-bold uppercase">${trait.replace(/_/g, " ")}</label>
-        <input type="number" name="affective_${trait}" value="${val ?? ""}" class="w-16 text-center border rounded-lg p-1">
+      <div class="dy-row-flex">
+        <label class="btn-sm">${trait.replace(/_/g, " ")}</label>
+        <input type="number" name="affective_${trait}" value="${val ?? ""}" class="dy-input-narrow">
       </div>
-    `).join("") || "<p class='text-xs text-gray-400'>No data</p>";
+    `).join("") || "<p class='text-xs '>No data</p>";
 
     // ---------- 4. Attendance ----------
     const attendanceHtml = `
-      <div class="grid grid-cols-3 gap-3 mb-4">
+      <div class="dy-grid-3">
         <div>
-          <label class="text-[10px] font-bold uppercase">Days Opened</label>
-          <input type="number" name="attendance_days_opened" value="${attendance.days_opened ?? ""}" class="border p-1 w-full">
+          <label class="dy-label-xs">Days Opened</label>
+          <input type="number" name="attendance_days_opened" value="${attendance.days_opened ?? ""}" class="dy-input-sm">
         </div>
         <div>
-          <label class="text-[10px] font-bold uppercase">Days Present</label>
-          <input type="number" name="attendance_days_present" value="${attendance.days_present ?? ""}" class="border p-1 w-full">
+          <label class="dy-label-xs">Days Present</label>
+          <input type="number" name="attendance_days_present" value="${attendance.days_present ?? ""}" class="dy-input-sm">
         </div>
         <div>
-          <label class="text-[10px] font-bold uppercase">Days Absent</label>
-          <input type="number" name="attendance_days_absent" value="${attendance.days_absent ?? ""}" class="border p-1 w-full">
+          <label class="dy-label-xs">Days Absent</label>
+          <input type="number" name="attendance_days_absent" value="${attendance.days_absent ?? ""}" class="dy-input-sm">
         </div>
       </div>
     `;
 
     // ---------- 5. Term Duration ----------
     const termDurationHtml = `
-      <div class="grid grid-cols-3 gap-3 mb-4">
+      <div class="dy-grid-3">
         <div>
-          <label class="text-[10px] font-bold uppercase">Term Begins</label>
-          <input type="date" name="term_begins" value="${termDuration.term_begins ?? ""}" class="border p-1 w-full">
+          <label class="dy-label-xs">Term Begins</label>
+          <input type="date" name="term_begins" value="${termDuration.term_begins ?? ""}" class="dy-input-sm">
         </div>
         <div>
-          <label class="text-[10px] font-bold uppercase">Term Ends</label>
-          <input type="date" name="term_ends" value="${termDuration.term_ends ?? ""}" class="border p-1 w-full">
+          <label class="dy-label-xs">Term Ends</label>
+          <input type="date" name="term_ends" value="${termDuration.term_ends ?? ""}" class="dy-input-sm">
         </div>
         <div>
-          <label class="text-[10px] font-bold uppercase">Next Term Begins</label>
-          <input type="date" name="next_term_begins" value="${termDuration.next_term_begins ?? ""}" class="border p-1 w-full">
+          <label class="dy-label-xs">Next Term Begins</label>
+          <input type="date" name="next_term_begins" value="${termDuration.next_term_begins ?? ""}" class="dy-input-sm">
         </div>
       </div>
     `;
 
     // ---------- 6. Comments ----------
     const commentsHtml = `
-      <div class="p-3 border rounded-xl bg-gray-50 mb-3">
-        <label class="block text-[10px] font-black uppercase text-gray-500 mb-2">Teacher Comment</label>
-        <textarea name="teacher_comment" class="w-full border p-2 rounded-lg" rows="3">${data.teacher_comment ?? ""}</textarea>
+      <div class="dy-subject-card">
+        <label class="dy-label-xs">Teacher Comment</label>
+        <textarea name="teacher_comment" class="dy-input" rows="3">${data.teacher_comment ?? ""}</textarea>
       </div>
-      <div class="p-3 border rounded-xl bg-gray-50 mb-3">
-        <label class="block text-[10px] font-black uppercase text-gray-500 mb-2">Headmaster Comment</label>
-        <textarea name="headmaster_comment" class="w-full border p-2 rounded-lg" rows="3">${data.headmaster_comment ?? ""}</textarea>
+      <div class="dy-subject-card">
+        <label class="dy-label-xs">Headmaster Comment</label>
+        <textarea name="headmaster_comment" class="dy-input" rows="3">${data.headmaster_comment ?? ""}</textarea>
       </div>
     `;
 
     // ---------- 7. Render everything ----------
     editResultSubjects.innerHTML = `
-      <div class="mb-6 text-center border-b pb-4">
-        <h3 class="font-black text-blue-600">${data.students?.full_name}</h3>
-        <p class="text-xs text-gray-400 font-bold">ID: ${data.students?.student_id}</p>
-        <p class="text-xs text-gray-400 font-bold">Gender: <input type="text" name="gender" value="${data.gender ?? ""}" class="border p-1 w-24 text-center"></p>
-        <p class="text-xs text-gray-400 font-bold">Term: <input type="text" name="term" value="${data.term ?? ""}" class="border p-1 w-24 text-center"></p>
-        <p class="text-xs text-gray-400 font-bold">Session: <input type="text" name="session" value="${data.session ?? ""}" class="border p-1 w-24 text-center"></p>
+      <div class="text-center">
+        <h3 class="">${data.students?.full_name}</h3>
+        <p class="dy-label-xs">ID: ${data.students?.student_id}</p>
+        <p class="dy-label-xs">Gender: <input type="text" name="gender" value="${data.gender ?? ""}" class="dy-input-narrow"></p>
+        <p class="dy-label-xs">Term: <input type="text" name="term" value="${data.term ?? ""}" class="dy-input-narrow"></p>
+        <p class="dy-label-xs">Session: <input type="text" name="session" value="${data.session ?? ""}" class="dy-input-narrow"></p>
       </div>
 
       ${subjectFieldsHtml}
 
-      <h3 class="mt-4 font-bold">Psychomotor Domain</h3>
+      <h3 class="dy-section-title">Psychomotor Domain</h3>
       ${psychomotorHtml}
 
-      <h3 class="mt-4 font-bold">Affective Domain</h3>
+      <h3 class="dy-section-title">Affective Domain</h3>
       ${affectiveHtml}
 
-      <h3 class="mt-4 font-bold">Attendance</h3>
+      <h3 class="dy-section-title">Attendance</h3>
       ${attendanceHtml}
 
-      <h3 class="mt-4 font-bold">Term Duration</h3>
+      <h3 class="dy-section-title">Term Duration</h3>
       ${termDurationHtml}
 
       ${commentsHtml}
 
-      <div class="mt-8 flex gap-3">
-        <button type="submit" class="flex-1 bg-blue-600 text-white py-4 rounded-2xl font-black">SAVE CHANGES</button>
-        <button type="button" onclick="closeModal()" class="flex-1 bg-gray-100 text-gray-500 py-4 rounded-2xl font-black">CANCEL</button>
+      <div class="form-actions">
+        <button type="submit" class="btn-save">SAVE CHANGES</button>
+        <button type="button" onclick="closeModal()" class="btn-cancel">CANCEL</button>
       </div>
     `;
 
     // show modal
-    editResultModal.classList.remove("hidden");
+    editResultModal.classList.add("show");
 
   } catch (err) {
     console.error(err);
@@ -11292,7 +11247,7 @@ async function deleteResult(
 
 // ---------- Close Modal ----------
 function closeModal() {
-  editResultModal.classList.add("hidden");
+  editResultModal.classList.remove("show");
   editResultSubjects.innerHTML = "";
   currentEditingResult = null;
 }
@@ -11345,26 +11300,16 @@ function toggleResultSelection(
       key
     );
 
-    card.classList.remove(
-      "ring-2",
-      "ring-blue-500",
-      "bg-blue-50"
-    );
+    card.classList.remove("selected");
 
     if (button) {
 
       button.textContent =
         "Select";
 
-      button.classList.remove(
-        "bg-blue-600",
-        "text-white"
-      );
+      button.classList.remove("active");
 
-      button.classList.add(
-        "bg-gray-100",
-        "text-gray-700"
-      );
+      button.classList.remove("active");
     }
 
   } else {
@@ -11375,26 +11320,16 @@ function toggleResultSelection(
       item
     );
 
-    card.classList.add(
-      "ring-2",
-      "ring-blue-500",
-      "bg-blue-50"
-    );
+    card.classList.add("selected");
 
     if (button) {
 
       button.textContent =
         "Selected";
 
-      button.classList.remove(
-        "bg-gray-100",
-        "text-gray-700"
-      );
+      button.classList.add("active");
 
-      button.classList.add(
-        "bg-blue-600",
-        "text-white"
-      );
+      button.classList.add("active");
     }
   }
 
@@ -11462,11 +11397,7 @@ function deselectAllStudents() {
     .querySelectorAll(".data-card")
     .forEach(card => {
 
-      card.classList.remove(
-        "ring-2",
-        "ring-blue-500",
-        "bg-blue-50"
-      );
+      card.classList.remove("selected");
 
       const button =
         card.querySelector(".select-result-btn");
@@ -11475,15 +11406,9 @@ function deselectAllStudents() {
 
         button.textContent = "Select";
 
-        button.classList.remove(
-          "bg-blue-600",
-          "text-white"
-        );
+        button.classList.remove("active");
 
-        button.classList.add(
-          "bg-gray-100",
-          "text-gray-700"
-        );
+        button.classList.remove("active");
       }
     });
 
@@ -11512,11 +11437,7 @@ function selectAllStudents() {
 
       selectedResults.set(key, item);
 
-      card.classList.add(
-        "ring-2",
-        "ring-blue-500",
-        "bg-blue-50"
-      );
+      card.classList.add("selected");
 
       const button =
         card.querySelector(".select-result-btn");
@@ -11525,15 +11446,9 @@ function selectAllStudents() {
 
         button.textContent = "Selected";
 
-        button.classList.remove(
-          "bg-gray-100",
-          "text-gray-700"
-        );
+        button.classList.add("active");
 
-        button.classList.add(
-          "bg-blue-600",
-          "text-white"
-        );
+        button.classList.add("active");
       }
     });
 
@@ -12384,7 +12299,7 @@ async function prepareReportData(row) {
         total += value;
 
         return `
-          <td class="px-2 py-1 border border-black text-center">
+          <td class="">
             ${value}
           </td>
         `;
@@ -12397,21 +12312,21 @@ async function prepareReportData(row) {
     return `
       <tr>
 
-        <td class="px-2 py-1 border border-black text-left uppercase">
+        <td class="domain-label">
           ${subject.subject_name}
         </td>
 
         ${caCells}
 
-        <td class="px-2 py-1 border border-black text-center bg-gray-100">
+        <td class="domain-label">
           ${total}
         </td>
 
-        <td class="px-2 py-1 border border-black text-center">
+        <td class="">
           ${grade}
         </td>
 
-        <td class="px-2 py-1 border border-black text-center italic">
+        <td class=" italic">
           ${getComment(grade)}
         </td>
 
@@ -12422,26 +12337,26 @@ async function prepareReportData(row) {
 
   // ---------- SUMMARY ----------
   const summaryRowHtml = `
-    <tr class="bg-gray-200 font-bold">
+    <tr class="dy-summary-row">
 
-      <td class="px-2 py-1 border border-black text-center uppercase">
+      <td class="">
         Overall Total
       </td>
 
       <td colspan="${config.parts.length}"
-          class="px-2 py-1 border border-black text-center">
+          class="">
         ${totalMarks}
       </td>
 
-      <td class="px-2 py-1 border border-black text-center">
+      <td class="">
         ${average}%
       </td>
 
-      <td class="px-2 py-1 border border-black text-center">
+      <td class="">
         ${overallGrade}
       </td>
 
-      <td class="px-2 py-1 border border-black text-center italic">
+      <td class=" italic">
         ${getComment(overallGrade)}
       </td>
 
@@ -12490,7 +12405,7 @@ async function prepareReportData(row) {
         const cols =
           [100, 85, 75, 65, 55]
             .map(val => `
-              <td class="px-2 py-1 border border-black text-center">
+              <td class="">
                 ${score === val ? "✔" : ""}
               </td>
             `)
@@ -12499,7 +12414,7 @@ async function prepareReportData(row) {
         return `
           <tr>
 
-            <td class="px-2 py-1 border border-black font-bold text-left">
+            <td class="domain-label">
               ${formatName(activity)}
             </td>
 
@@ -12521,7 +12436,7 @@ async function prepareReportData(row) {
         const cols =
           [100, 85, 75, 65, 55]
             .map(val => `
-              <td class="px-2 py-1 border border-black text-center">
+              <td class="">
                 ${score === val ? "✔" : ""}
               </td>
             `)
@@ -12530,7 +12445,7 @@ async function prepareReportData(row) {
         return `
           <tr>
 
-            <td class="px-2 py-1 border border-black font-bold text-left">
+            <td class="domain-label">
               ${formatName(trait)}
             </td>
 
@@ -13272,12 +13187,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         .querySelectorAll(".data-card")
         .forEach(card => {
 
-          card.classList.remove(
-            "ring-2",
-            "ring-blue-500",
-            "bg-blue-50",
-            "selected"
-          );
+          card.classList.remove("selected");
 
           const button =
             card.querySelector(".select-result-btn");
@@ -13286,15 +13196,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             button.textContent = "Select";
 
-            button.classList.remove(
-              "bg-blue-600",
-              "text-white"
-            );
+            button.classList.remove("active");
 
-            button.classList.add(
-              "bg-gray-100",
-              "text-gray-700"
-            );
+            button.classList.remove("active");
           }
         });
 
@@ -13346,12 +13250,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       .querySelectorAll(".data-card")
       .forEach(card => {
 
-        card.classList.remove(
-          "ring-2",
-          "ring-blue-500",
-          "bg-blue-50",
-          "selected"
-        );
+        card.classList.remove("selected");
 
         const button =
           card.querySelector(".select-result-btn");
@@ -13360,15 +13259,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
           button.textContent = "Select";
 
-          button.classList.remove(
-            "bg-blue-600",
-            "text-white"
-          );
+          button.classList.remove("active");
 
-          button.classList.add(
-            "bg-gray-100",
-            "text-gray-700"
-          );
+          button.classList.remove("active");
         }
       });
 
