@@ -1022,198 +1022,253 @@ if (
 
 </footer>
 
-  <script>
-    // Hamburger toggle
-    const hamburger = document.getElementById('hamburger');
-    const navLinks = document.getElementById('navLinks');
+<script>
+  // ===== Hamburger toggle =====
+  const hamburger = document.getElementById('hamburger');
+  const navLinks = document.getElementById('navLinks');
+
+  if (hamburger && navLinks) {
     hamburger.addEventListener('click', () => {
       navLinks.classList.toggle('active');
       hamburger.classList.toggle('active');
     });
+  }
 
-    // Smooth scroll and close menu when a nav link is clicked
-    document.querySelectorAll('.nav-links a').forEach(link => {
-      link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const targetId = link.getAttribute('href').slice(1);
-        const targetSection = document.getElementById(targetId);
-        if (targetSection) {
-          targetSection.scrollIntoView({ behavior: 'smooth' });
-          navLinks.classList.remove('active');
-          hamburger.classList.remove('active');
-        }
-      });
+  // Smooth scroll + close menu when a nav link is clicked
+  document.querySelectorAll('.nav-links a').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const targetId = link.getAttribute('href').slice(1);
+      const targetSection = document.getElementById(targetId);
+      if (targetSection) {
+        targetSection.scrollIntoView({ behavior: 'smooth' });
+        navLinks?.classList.remove('active');
+        hamburger?.classList.remove('active');
+      }
     });
+  });
 
-    // Smooth scroll for hero buttons
-    document.querySelectorAll('.hero-buttons a, .scroll-indicator a').forEach(link => {
-      link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const targetId = link.getAttribute('href').slice(1);
-        const targetSection = document.getElementById(targetId);
-        if (targetSection) {
-          targetSection.scrollIntoView({ behavior: 'smooth' });
-        }
-      });
+  // Smooth scroll for hero buttons & scroll indicator
+  document.querySelectorAll('.hero-buttons a, .scroll-indicator a').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const targetId = link.getAttribute('href').slice(1);
+      const targetSection = document.getElementById(targetId);
+      if (targetSection) {
+        targetSection.scrollIntoView({ behavior: 'smooth' });
+      }
     });
+  });
 
-    // Navbar shadow on scroll
-    const navbar = document.getElementById('navbar');
-    window.addEventListener('scroll', () => {
-      if (window.scrollY > 20) navbar.classList.add('scrolled');
-      else navbar.classList.remove('scrolled');
-    });
+  // Navbar shadow on scroll
+  const navbar = document.getElementById('navbar');
+  window.addEventListener('scroll', () => {
+    if (window.scrollY > 20) navbar?.classList.add('scrolled');
+    else navbar?.classList.remove('scrolled');
+  });
 
-//SUPABASE KEY N URL
+  // ===== SUPABASE =====
   const SUPABASE_URL = "https://irelkjvppoisvjpopdpb.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlyZWxranZwcG9pc3ZqcG9wZHBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYzNTUwMDAsImV4cCI6MjA4MTkzMTAwMH0.osF4wEZ-zm3cXScD1W8gMOkG81O2TbDJ8L47YvIIryw";
 
-  const supabaseClient = supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_ANON_KEY
-  );
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-//LOGIN
-document.addEventListener("DOMContentLoaded", () => {
+  /* =======================
+     FRIENDLY LOGIN ERRORS
+  ======================= */
+  function getLoginFriendlyError(error) {
+    if (!error) return "Something went wrong. Please try again.";
 
-  const loginSubmit = document.getElementById("loginSubmit");
-  const loginPopup = document.getElementById("loginPopup");
-  const loginCancel = document.getElementById("loginCancel");
-  const loginEmail = document.getElementById("loginEmail");
-  const loginPassword = document.getElementById("loginPassword");
-  const loginError = document.getElementById("loginError");
-  const teacherLoginBtn = document.getElementById("teacherLoginBtn");
+    const rawMessage =
+      error.message ||
+      error.error ||
+      error.msg ||
+      "";
 
-  console.log("Login script initialized");
+    const msg = rawMessage.toLowerCase();
 
-  // Open Login Popup
-  function openLoginPopup() {
-    loginPopup.classList.add("show");
-    loginEmail.value = "";
-    loginPassword.value = "";
-    loginError.classList.remove("show");
-    loginError.textContent = "";
-    loginEmail.focus();
-  }
-
-  // ========== Close Popup ==========
-  function closeLoginPopup() {
-    loginPopup.classList.remove("show");
-  }
-
-  if (teacherLoginBtn) {
-    teacherLoginBtn.addEventListener("click", openLoginPopup);
-  }
-
-  if (loginCancel) {
-    loginCancel.addEventListener("click", closeLoginPopup);
-  }
-
-// Login Submit
-if (loginSubmit) {
-  loginSubmit.addEventListener("click", async () => {
-
-    const input = loginEmail.value.trim();
-    const password = loginPassword.value.trim();
-
-    loginError.classList.remove("show");
-    loginError.textContent = "";
-
-    if (!input || !password) {
-      loginError.textContent = "Enter email or student ID and password";
-      loginError.classList.add("show");
-      return;
+    // Wrong email / password
+    if (
+      msg.includes("invalid login credentials") ||
+      msg.includes("invalid credentials") ||
+      msg.includes("email not confirmed") ||
+      error.status === 400
+    ) {
+      return "Incorrect email/Student ID or password. Please try again.";
     }
 
-    // Detect student vs staff login
-    const isStudent = !input.includes("@");
+    // User not found
+    if (
+      msg.includes("user not found") ||
+      msg.includes("no user found")
+    ) {
+      return "No account found with these details.";
+    }
 
-    const email = isStudent
-      ? `${input.toLowerCase()}@student.school.local`
-      : input;
+    // Too many attempts
+    if (
+      msg.includes("too many requests") ||
+      msg.includes("rate limit") ||
+      error.status === 429
+    ) {
+      return "Too many login attempts. Please wait a moment and try again.";
+    }
 
-    try {
-      showSpinner("Signing you in...");
+    // Network issues
+    if (
+      msg.includes("failed to fetch") ||
+      msg.includes("network") ||
+      msg.includes("connection") ||
+      msg.includes("offline")
+    ) {
+      return "Network connection lost. Please check your internet and try again.";
+    }
 
-      // 🔐 AUTH LOGIN
-      const { data, error } = await supabaseClient.auth.signInWithPassword({
-        email,
-        password
+    // Role / permission issues
+    if (
+      msg.includes("role") ||
+      msg.includes("permission") ||
+      msg.includes("not authorized")
+    ) {
+      return "Your account does not have access to the portal.";
+    }
+
+    // Default fallback
+    return rawMessage || "Unable to sign in. Please try again.";
+  }
+
+  // ===== LOGIN =====
+  document.addEventListener("DOMContentLoaded", () => {
+    const loginSubmit = document.getElementById("loginSubmit");
+    const loginPopup = document.getElementById("loginPopup");
+    const loginCancel = document.getElementById("loginCancel");
+    const loginEmail = document.getElementById("loginEmail");
+    const loginPassword = document.getElementById("loginPassword");
+    const loginError = document.getElementById("loginError");
+    const teacherLoginBtn = document.getElementById("teacherLoginBtn");
+
+    console.log("Login script initialized");
+
+    // Open Login Popup
+    function openLoginPopup() {
+      loginPopup.classList.add("show");
+      loginEmail.value = "";
+      loginPassword.value = "";
+      loginError.classList.remove("show");
+      loginError.textContent = "";
+      loginEmail.focus();
+    }
+
+    // Close Popup
+    function closeLoginPopup() {
+      loginPopup.classList.remove("show");
+    }
+
+    if (teacherLoginBtn) {
+      teacherLoginBtn.addEventListener("click", openLoginPopup);
+    }
+
+    if (loginCancel) {
+      loginCancel.addEventListener("click", closeLoginPopup);
+    }
+
+    // Close when clicking outside the popup box
+    if (loginPopup) {
+      loginPopup.addEventListener("click", (e) => {
+        if (e.target === loginPopup) closeLoginPopup();
       });
+    }
 
-      if (error || !data?.user) {
-        hideSpinner();
-        loginError.textContent = "Invalid credentials";
-        loginError.classList.add("show");
-        return;
-      }
+    // ===== LOGIN SUBMIT =====
+    if (loginSubmit) {
+      loginSubmit.addEventListener("click", async () => {
+        const input = loginEmail.value.trim();
+        const password = loginPassword.value.trim();
 
-      const user = data.user;
+        loginError.classList.remove("show");
+        loginError.textContent = "";
 
-      // SINGLE SOURCE OF TRUTH ROLE
-      const { data: role, error: roleError } =
-        await supabaseClient.rpc("current_user_role");
-
-      if (roleError) {
-        hideSpinner();
-        loginError.textContent = "Role check failed";
-        loginError.classList.add("show");
-        return;
-      }
-
-      // ROUTING LOGIC (ALL ROLES)
-      switch (role) {
-
-        case "admin":
-          showSpinner("Loading dashboard...");
-          window.location.href = "dashboard.html";
-          return;
-
-        case "teacher":
-          showSpinner("Loading dashboard...");
-          window.location.href = "dashboard.html";
-          return;
-
-        case "student":
-          showSpinner("Loading dashboard...");
-          window.location.href = "dashboard.html";
-          return;
-
-        default:
-          hideSpinner();
-          loginError.textContent = "No role assigned";
+        if (!input || !password) {
+          loginError.textContent = "Please enter your email / Student ID and password.";
           loginError.classList.add("show");
           return;
-      }
+        }
 
-    } catch (err) {
-      console.error("Login error:", err);
-      hideSpinner();
-      loginError.textContent = "Login failed";
-      loginError.classList.add("show");
+        // Detect student vs staff login
+        const isStudent = !input.includes("@");
+        const email = isStudent
+          ? `${input.toLowerCase()}@student.school.local`
+          : input;
+
+        try {
+          showSpinner("Signing you in...");
+
+          // 🔐 AUTH LOGIN
+          const { data, error } = await supabaseClient.auth.signInWithPassword({
+            email,
+            password
+          });
+
+          if (error || !data?.user) {
+            hideSpinner();
+            loginError.textContent = getLoginFriendlyError(error);
+            loginError.classList.add("show");
+            return;
+          }
+
+          // SINGLE SOURCE OF TRUTH ROLE
+          const { data: role, error: roleError } =
+            await supabaseClient.rpc("current_user_role");
+
+          if (roleError) {
+            hideSpinner();
+            loginError.textContent = getLoginFriendlyError(roleError) ||
+              "Unable to verify your role. Please contact the school.";
+            loginError.classList.add("show");
+            return;
+          }
+
+          // ROUTING LOGIC (ALL ROLES)
+          switch (role) {
+            case "admin":
+            case "teacher":
+            case "student":
+              showSpinner("Loading dashboard...");
+              window.location.href = "dashboard.html";
+              return;
+
+            default:
+              hideSpinner();
+              loginError.textContent = "Your account has no role assigned. Please contact the school administrator.";
+              loginError.classList.add("show");
+              return;
+          }
+
+        } catch (err) {
+          console.error("Login error:", err);
+          hideSpinner();
+          loginError.textContent = getLoginFriendlyError(err);
+          loginError.classList.add("show");
+        }
+      });
     }
   });
-}
-});
 
+  // =========================
+  // SPINNER LOGIC
+  // =========================
+  const spinner = document.getElementById("loading-spinner");
 
-//=========================
-//SPINNER LOGIC
-//==========================
-const spinner = document.getElementById("loading-spinner");
+  function showSpinner(message = "Loading... Please wait") {
+    if (!spinner) return;
+    spinner.querySelector("div:last-child").textContent = message;
+    spinner.classList.add("show");
+  }
 
-function showSpinner(message = "Uploading... Please wait") {
-  if (!spinner) return;
-  spinner.querySelector("div:last-child").textContent = message;
-  spinner.classList.add("show");
-}
-
-function hideSpinner() {
-  spinner?.classList.remove("show");
-}
-
-
-  </script>
+  function hideSpinner() {
+    spinner?.classList.remove("show");
+  }
+</script>
   
 </body>
 </html>
