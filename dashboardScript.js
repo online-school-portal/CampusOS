@@ -9566,7 +9566,7 @@ async function renderManageResults() {
   if (!classId) return;
 
   manageStudentContainer.innerHTML =
-    "<div class='p-10 text-center  animate-pulse'>Fetching records...</div>";
+    "<div class='empty-state'>Fetching records...</div>";
 
   try {
     const { data: role } = await supabaseClient.rpc("current_user_role");
@@ -11350,17 +11350,11 @@ function updateBulkBar() {
     );
 
   // ADMIN ONLY
-  if (
-    window.currentUserRole !==
-    "admin"
-  ) {
-
+  if (window.currentUserRole !== "admin") {
     if (bar) {
-      bar.classList.add(
-        "hidden"
-      );
+      bar.classList.remove("show");
+      bar.classList.add("hidden");
     }
-
     return;
   }
 
@@ -11375,16 +11369,11 @@ function updateBulkBar() {
   if (!bar) return;
 
   if (total > 0) {
-
-    bar.classList.remove(
-      "hidden"
-    );
-
+    bar.classList.add("show");
+    bar.classList.remove("hidden");
   } else {
-
-    bar.classList.add(
-      "hidden"
-    );
+    bar.classList.remove("show");
+    bar.classList.add("hidden");
   }
 }
 
