@@ -333,6 +333,7 @@ async function loadDashboard(session) {
 
         // 4️⃣ ROLE UI
 
+        window.currentUserRole = role;
         applyRoleVisibility(role);
 
         if (typeof showSection === "function") {
@@ -9566,7 +9567,7 @@ async function renderManageResults() {
   if (!classId) return;
 
   manageStudentContainer.innerHTML =
-    "<div class='empty-state'>Fetching records...</div>";
+    '<p class="empty-state">Fetching records...</p>';
 
   try {
     const { data: role } = await supabaseClient.rpc("current_user_role");
@@ -9652,8 +9653,7 @@ card.dataset.key = key;
 
 card.dataset.item = JSON.stringify(item);
 
-card.className =
-  "data-card border p-4 rounded-xl bg-white shadow-sm hover:shadow-md transition-all cursor-pointer select-none";
+card.className = "data-card";
 
       card.innerHTML = `
       
@@ -11350,11 +11350,17 @@ function updateBulkBar() {
     );
 
   // ADMIN ONLY
-  if (window.currentUserRole !== "admin") {
+  if (
+    window.currentUserRole !==
+    "admin"
+  ) {
+
     if (bar) {
-      bar.classList.remove("show");
-      bar.classList.add("hidden");
+      bar.classList.add(
+        "hidden"
+      );
     }
+
     return;
   }
 
@@ -11369,11 +11375,16 @@ function updateBulkBar() {
   if (!bar) return;
 
   if (total > 0) {
-    bar.classList.add("show");
-    bar.classList.remove("hidden");
+
+    bar.classList.remove(
+      "hidden"
+    );
+
   } else {
-    bar.classList.remove("show");
-    bar.classList.add("hidden");
+
+    bar.classList.add(
+      "hidden"
+    );
   }
 }
 
