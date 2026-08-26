@@ -1273,17 +1273,25 @@ document.addEventListener("DOMContentLoaded", () => {
 // ===============================
 function showSpinner(message = "Loading... Please wait") {
   const spinner = document.getElementById("loading-spinner");
-  if (!spinner) return;
+  if (!spinner) {
+    console.warn("loading-spinner element not found");
+    return;
+  }
 
-  const text = spinner.querySelector("div:last-child");
+  const text =
+    spinner.querySelector(".spinner-text") ||
+    spinner.querySelector("div:last-child");
   if (text) text.textContent = message;
 
   spinner.classList.add("show");
+  spinner.style.display = "flex";
 }
 
 function hideSpinner() {
   const spinner = document.getElementById("loading-spinner");
-  spinner?.classList.remove("show");
+  if (!spinner) return;
+  spinner.classList.remove("show");
+  spinner.style.display = "none";
 }
 
 
