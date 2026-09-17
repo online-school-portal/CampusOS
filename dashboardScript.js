@@ -601,6 +601,9 @@ function selectStudent({ student, selectId, textId, dropdownId }) {
     ${student.full_name}
   `;
 
+  // Notify listeners (e.g. auto-fill gender on Add Result)
+  select.dispatchEvent(new Event("change", { bubbles: true }));
+
   toggleStudentDropdown(dropdownId);
 }
 
@@ -1796,6 +1799,9 @@ async function loadStudents(list = allStudents) {
 
           <span class="card-label">Phone</span>
           <span class="card-value">${student.parent_phone || "N/A"}</span>
+
+          <span class="card-label">Address</span>
+          <span class="card-value">${student.student_address || "N/A"}</span>
         </div>
 
         ${
@@ -8711,13 +8717,19 @@ async function loadStudentsByClass(classId) {
 
     const { data: students, error } = await supabaseClient
       .from("students")
-      .select("id, student_id, full_name, image_url, class_id")
+      .select("id, student_id, full_name, image_url, class_id, sex")
       .eq("class_id", classId)
       .order("full_name");
 
     if (error) throw error;
 
     const list = students || [];
+
+    // Cache for auto-filling gender on Add Result
+    if (!window._studentsById) window._studentsById = {};
+    list.forEach(s => {
+      window._studentsById[s.id] = s;
+    });
 
     selected.resultStudentId = null;
 
@@ -8729,6 +8741,10 @@ async function loadStudentsByClass(classId) {
       placeholder: "Select student",
       stateKey: "resultStudentId"
     });
+
+    // Clear gender until a student is chosen
+    const genderEl = document.getElementById("studentGender");
+    if (genderEl) genderEl.value = "";
 
     return list;
 
@@ -8918,6 +8934,29 @@ resultClassSelect.addEventListener("change", async (e) => {
 
 resultStudentSelect.addEventListener("change", (e) => {
   selected.resultStudentId = e.target.value || null;
+
+  const genderEl = document.getElementById("studentGender");
+  if (!genderEl) return;
+
+  const studentId = e.target.value;
+  if (!studentId) {
+    genderEl.value = "";
+    return;
+  }
+
+  const student = window._studentsById?.[studentId];
+  const raw = (student?.sex || "").toString().trim();
+  const lower = raw.toLowerCase();
+
+  if (raw === "Male" || raw === "Female") {
+    genderEl.value = raw;
+  } else if (lower.startsWith("m")) {
+    genderEl.value = "Male";
+  } else if (lower.startsWith("f")) {
+    genderEl.value = "Female";
+  } else {
+    genderEl.value = "";
+  }
 });
 
 
@@ -9267,6 +9306,10 @@ function resetResultForm() {
       textId: "studentSelectedText",
       placeholder: "Select student"
     });
+
+    // RESET GENDER SELECT
+    const genderEl = document.getElementById("studentGender");
+    if (genderEl) genderEl.value = "";
 
     // CLEAR STATE
     selected.resultStudentId = null;
