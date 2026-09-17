@@ -11286,10 +11286,8 @@ function toggleResultSelection(
 ) {
 
   // ADMIN ONLY
-  if (
-    window.currentUserRole !==
-    "admin"
-  ) return;
+  const role = String(window.currentUserRole || "").toLowerCase();
+  if (role !== "admin") return;
 
   const key =
     createResultKey(item);
@@ -11316,8 +11314,6 @@ function toggleResultSelection(
         "Select";
 
       button.classList.remove("active");
-
-      button.classList.remove("active");
     }
 
   } else {
@@ -11334,8 +11330,6 @@ function toggleResultSelection(
 
       button.textContent =
         "Selected";
-
-      button.classList.add("active");
 
       button.classList.add("active");
     }
@@ -11358,15 +11352,12 @@ function updateBulkBar() {
     );
 
   // ADMIN ONLY
-  if (
-    window.currentUserRole !==
-    "admin"
-  ) {
+  const role = String(window.currentUserRole || "").toLowerCase();
+  if (role !== "admin") {
 
     if (bar) {
-      bar.classList.add(
-        "hidden"
-      );
+      bar.classList.add("hidden");
+      bar.classList.remove("show");
     }
 
     return;
@@ -11384,15 +11375,13 @@ function updateBulkBar() {
 
   if (total > 0) {
 
-    bar.classList.remove(
-      "hidden"
-    );
+    bar.classList.remove("hidden");
+    bar.classList.add("show");
 
   } else {
 
-    bar.classList.add(
-      "hidden"
-    );
+    bar.classList.add("hidden");
+    bar.classList.remove("show");
   }
 }
 
