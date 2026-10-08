@@ -137,6 +137,21 @@ function CustomDrawerContent(props: any) {
 
       {role === 'admin' && (
         <>
+          <MenuItem
+            label="Classes"
+            icon="library-outline"
+            onPress={() => props.navigation.navigate('classes')}
+          />
+          <MenuItem
+            label="Subjects"
+            icon="book-outline"
+            onPress={() => props.navigation.navigate('subjects')}
+          />
+        </>
+      )}
+
+      {role === 'admin' && (
+        <>
           <SectionHeader title="Teachers" icon="school-outline" sectionKey="teachers" />
           {openSection === 'teachers' && (
             <View style={styles.subMenu}>
@@ -173,13 +188,6 @@ function CustomDrawerContent(props: any) {
               <MenuItem label="Financial Report" icon="stats-chart-outline" onPress={() => {}} isSub />
             </View>
           )}
-        </>
-      )}
-
-      {role === 'admin' && (
-        <>
-          <MenuItem label="Classes" icon="library-outline" onPress={() => {}} />
-          <MenuItem label="Subjects" icon="book-outline" onPress={() => {}} />
           <MenuItem label="Credit Tracking" icon="card-outline" onPress={() => {}} />
         </>
       )}
@@ -239,16 +247,15 @@ export default function AppLayout() {
       <Drawer.Screen name="register-student" options={{ title: 'Register Student' }} />
       <Drawer.Screen name="manage-students" options={{ title: 'Manage Students' }} />
       <Drawer.Screen name="transfer-students" options={{ title: 'Transfer Students' }} />
+      <Drawer.Screen name="classes" options={{ title: 'Classes' }} />
+      <Drawer.Screen name="subjects" options={{ title: 'Subjects' }} />
       <Drawer.Screen name="results" options={{ title: 'Results' }} />
     </Drawer>
   );
 }
 
 const styles = StyleSheet.create({
-  drawer: {
-    flex: 1,
-    paddingTop: 10,
-  },
+  drawer: { flex: 1, paddingTop: 10 },
   loading: {
     flex: 1,
     justifyContent: 'center',

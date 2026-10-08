@@ -8,12 +8,10 @@ import {
   Alert,
   ScrollView,
 } from 'react-native';
-import { useRouter } from 'expo-router';
 import { Picker } from '@react-native-picker/picker';
 import { supabase } from '@/lib/supabase';
 
 export default function TransferStudentsScreen() {
-  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [transferring, setTransferring] = useState(false);
   const [classes, setClasses] = useState<any[]>([]);
@@ -38,10 +36,11 @@ export default function TransferStudentsScreen() {
   const loadClasses = async () => {
     setLoading(true);
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('classes')
         .select('id, name')
         .order('name');
+      if (error) throw error;
       setClasses(data || []);
     } catch (err) {
       console.log(err);
@@ -54,13 +53,14 @@ export default function TransferStudentsScreen() {
     try {
       const { data: schoolId } = await supabase.rpc('current_user_school_id');
 
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('students')
-        .select('id, full_name, student_id')
+        .select('id, full_name, student_id, current_class')
         .eq('school_id', schoolId)
         .eq('current_class', classId)
         .order('full_name');
 
+      if (error) throw error;
       setStudents(data || []);
       setSelectedStudent('');
     } catch (err) {
@@ -89,7 +89,10 @@ export default function TransferStudentsScreen() {
 
       if (error) throw error;
 
-      Alert.alert('Success', 'Student transferred successfully', [
+      const studentName =
+        students.find((s) => s.id === selectedStudent)?.full_name || 'Student';
+
+      Alert.alert('Success', `${studentName} transferred successfully`, [
         {
           text: 'OK',
           onPress: () => {
@@ -151,6 +154,10 @@ export default function TransferStudentsScreen() {
         </Picker>
       </View>
 
+      {selectedClass && students.length === 0 && (
+        <Text style={styles.warning}>No students in this class</Text>
+      )}
+
       <Text style={styles.label}>Transfer To (New Class)</Text>
       <View style={styles.pickerWrapper}>
         <Picker
@@ -183,14 +190,8 @@ export default function TransferStudentsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f1f5f9',
-  },
-  content: {
-    padding: 20,
-    paddingBottom: 60,
-  },
+  container: { flex: 1, backgroundColor: '#f1f5f9' },
+  content: { padding: 20, paddingBottom: 60 },
   center: {
     flex: 1,
     justifyContent: 'center',
@@ -218,8 +219,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     overflow: 'hidden',
   },
-  picker: {
-    height: 50,
+  picker: { height: 50 },
+  warning: {
+    color: '#dc2626',
+    fontSize: 13,
+    marginBottom: 12,
+    fontFamily: 'PlusJakartaSans_400Regular',
   },
   button: {
     backgroundColor: '#1e40af',
