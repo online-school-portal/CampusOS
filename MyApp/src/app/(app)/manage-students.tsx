@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,52 +9,29 @@ import {
   ActivityIndicator,
   Alert,
   TextInput,
+  RefreshControl,
 } from 'react-native';
-import { useRouter } from 'expo-router';
 import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 
 export default function ManageStudentsScreen() {
-  const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [students, setStudents] = useState<any[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
   const [selectedClass, setSelectedClass] = useState('all');
   const [search, setSearch] = useState('');
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  useEffect(() => {
-    loadStudents();
-  }, [selectedClass]);
-
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const { data: schoolId } = await supabase.rpc('current_user_school_id');
-
-      const [{ data: classData }, { data: studentData }] = await Promise.all([
-        supabase.from('classes').select('id, name').order('name'),
-        supabase
-          .from('students')
-          .select('*')
-          .eq('school_id', schoolId)
-          .order('created_at', { ascending: false }),
-      ]);
-
-      setClasses(classData || []);
-      setStudents(studentData || []);
-    } catch (err) {
-      console.log('Load error:', err);
-    } finally {
-      setLoading(false);
-    }
+  const loadClasses = async () => {
+    const { data } = await supabase
+      .from('classes')
+      .select('id, name')
+      .order('name');
+    setClasses(data || []);
   };
 
-  const loadStudents = async () => {
+  const loadStudents = useCallback(async () => {
     try {
       const { data: schoolId } = await supabase.rpc('current_user_school_id');
 
@@ -64,15 +41,42 @@ export default function ManageStudentsScreen() {
         .eq('school_id', schoolId)
         .order('created_at', { ascending: false });
 
-      if (selectedClass !== 'all') {
+      if (selectedClass && selectedClass !== 'all') {
         query = query.eq('current_class', selectedClass);
       }
 
-      const { data } = await query;
+      const { data, error } = await query;
+      if (error) throw error;
       setStudents(data || []);
     } catch (err) {
-      console.log(err);
+      console.log('Load students error:', err);
     }
+  }, [selectedClass]);
+
+  useEffect(() => {
+    const init = async () => {
+      setLoading(true);
+      await loadClasses();
+      await loadStudents();
+      setLoading(false);
+    };
+    init();
+  }, []);
+
+  useEffect(() => {
+    loadStudents();
+  }, [selectedClass, loadStudents]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadStudents();
+    setRefreshing(false);
+  };
+
+  const getClassName = (classId: string | null) => {
+    if (!classId) return '—';
+    const found = classes.find((c) => c.id === classId);
+    return found ? found.name : '—';
   };
 
   const handleDelete = (student: any) => {
@@ -103,7 +107,7 @@ export default function ManageStudentsScreen() {
   };
 
   const filteredStudents = students.filter((s) => {
-    if (!search) return true;
+    if (!search.trim()) return true;
     const q = search.toLowerCase();
     return (
       s.full_name?.toLowerCase().includes(q) ||
@@ -115,9 +119,7 @@ export default function ManageStudentsScreen() {
     <View style={styles.card}>
       <View style={styles.cardHeader}>
         <Image
-          source={{
-            uri: item.image_url || 'https://via.placeholder.com/50',
-          }}
+          source={{ uri: item.image_url || 'https://via.placeholder.com/50' }}
           style={styles.avatar}
         />
         <View style={{ flex: 1 }}>
@@ -131,29 +133,20 @@ export default function ManageStudentsScreen() {
           Sex: <Text style={styles.value}>{item.sex || '—'}</Text>
         </Text>
         <Text style={styles.label}>
-          Class:{' '}
-          <Text style={styles.value}>
-            {classes.find((c) => c.id === item.current_class)?.name || '—'}
-          </Text>
+          Class: <Text style={styles.value}>{getClassName(item.current_class)}</Text>
         </Text>
       </View>
 
       <View style={styles.actions}>
         <TouchableOpacity
           style={styles.editBtn}
-          onPress={() => {
-            // Future: navigate to edit screen
-            Alert.alert('Coming soon', 'Edit student will be available soon');
-          }}
+          onPress={() => Alert.alert('Coming soon', 'Edit student will be available soon')}
         >
           <Ionicons name="create-outline" size={16} color="#1e40af" />
           <Text style={styles.editText}>Edit</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.deleteBtn}
-          onPress={() => handleDelete(item)}
-        >
+        <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(item)}>
           <Ionicons name="trash-outline" size={16} color="#dc2626" />
           <Text style={styles.deleteText}>Delete</Text>
         </TouchableOpacity>
@@ -173,7 +166,6 @@ export default function ManageStudentsScreen() {
     <View style={styles.container}>
       <Text style={styles.header}>Manage Students</Text>
 
-      {/* Search */}
       <TextInput
         style={styles.search}
         placeholder="Search by name or ID..."
@@ -181,11 +173,10 @@ export default function ManageStudentsScreen() {
         onChangeText={setSearch}
       />
 
-      {/* Class Filter */}
       <View style={styles.pickerWrapper}>
         <Picker
           selectedValue={selectedClass}
-          onValueChange={setSelectedClass}
+          onValueChange={(value) => setSelectedClass(value)}
           style={styles.picker}
         >
           <Picker.Item label="All Classes" value="all" />
@@ -203,10 +194,11 @@ export default function ManageStudentsScreen() {
         data={filteredStudents}
         keyExtractor={(item) => item.id}
         renderItem={renderStudent}
-        contentContainerStyle={{ paddingBottom: 40 }}
-        ListEmptyComponent={
-          <Text style={styles.empty}>No students found</Text>
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#1e40af']} />
         }
+        contentContainerStyle={{ paddingBottom: 40 }}
+        ListEmptyComponent={<Text style={styles.empty}>No students found</Text>}
       />
     </View>
   );
@@ -248,9 +240,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     overflow: 'hidden',
   },
-  picker: {
-    height: 50,
-  },
+  picker: { height: 50 },
   count: {
     fontSize: 14,
     color: '#64748b',

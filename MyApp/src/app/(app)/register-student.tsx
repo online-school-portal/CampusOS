@@ -50,11 +50,17 @@ export default function RegisterStudentScreen() {
   }, []);
 
   const loadClasses = async () => {
-    const { data } = await supabase
-      .from('classes')
-      .select('id, name')
-      .order('name');
-    setClasses(data || []);
+    try {
+      const { data, error } = await supabase
+        .from('classes')
+        .select('id, name')
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+      setClasses(data || []);
+    } catch (err) {
+      console.log('Failed to load classes:', err);
+    }
   };
 
   const pickImage = async () => {
@@ -71,7 +77,7 @@ export default function RegisterStudentScreen() {
   };
 
   const handleRegister = async () => {
-    if (!fullName || !studentId) {
+    if (!fullName.trim() || !studentId.trim()) {
       Alert.alert('Error', 'Full Name and Student ID are required');
       return;
     }
@@ -79,11 +85,11 @@ export default function RegisterStudentScreen() {
     setLoading(true);
 
     try {
-      const { data: schoolId } = await supabase.rpc('current_user_school_id');
+      const { data: schoolId, error: schoolError } = await supabase.rpc('current_user_school_id');
+      if (schoolError) throw schoolError;
 
-      let imageUrl = null;
+      let imageUrl: string | null = null;
 
-      // Upload photo if selected
       if (photo) {
         const ext = photo.split('.').pop() || 'jpg';
         const fileName = `${studentId}_${Date.now()}.${ext}`;
@@ -102,10 +108,9 @@ export default function RegisterStudentScreen() {
         }
       }
 
-      // Insert student record
       const { error } = await supabase.from('students').insert({
-        full_name: fullName,
-        student_id: studentId,
+        full_name: fullName.trim(),
+        student_id: studentId.trim(),
         date_of_birth: dateOfBirth || null,
         sex: sex || null,
         state_of_origin: stateOfOrigin || null,
@@ -135,6 +140,7 @@ export default function RegisterStudentScreen() {
         { text: 'OK', onPress: () => router.back() },
       ]);
     } catch (err: any) {
+      console.log(err);
       Alert.alert('Error', err.message || 'Failed to register student');
     } finally {
       setLoading(false);
@@ -145,7 +151,6 @@ export default function RegisterStudentScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.header}>Register Student</Text>
 
-      {/* Photo Upload */}
       <TouchableOpacity style={styles.photoBox} onPress={pickImage}>
         {photo ? (
           <Image source={{ uri: photo }} style={styles.photo} />
@@ -156,25 +161,9 @@ export default function RegisterStudentScreen() {
 
       <Text style={styles.sectionTitle}>Student Details</Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Full Name *"
-        value={fullName}
-        onChangeText={setFullName}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Student ID *"
-        value={studentId}
-        onChangeText={setStudentId}
-        autoCapitalize="characters"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Date of Birth (YYYY-MM-DD)"
-        value={dateOfBirth}
-        onChangeText={setDateOfBirth}
-      />
+      <TextInput style={styles.input} placeholder="Full Name *" value={fullName} onChangeText={setFullName} />
+      <TextInput style={styles.input} placeholder="Student ID *" value={studentId} onChangeText={setStudentId} autoCapitalize="characters" />
+      <TextInput style={styles.input} placeholder="Date of Birth (YYYY-MM-DD)" value={dateOfBirth} onChangeText={setDateOfBirth} />
 
       <View style={styles.pickerWrapper}>
         <Picker selectedValue={sex} onValueChange={setSex} style={styles.picker}>
@@ -184,46 +173,16 @@ export default function RegisterStudentScreen() {
         </Picker>
       </View>
 
-      <TextInput
-        style={styles.input}
-        placeholder="State of Origin"
-        value={stateOfOrigin}
-        onChangeText={setStateOfOrigin}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Nationality"
-        value={nationality}
-        onChangeText={setNationality}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="LGA"
-        value={lga}
-        onChangeText={setLga}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Student Address"
-        value={studentAddress}
-        onChangeText={setStudentAddress}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Passkey (optional)"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
+      <TextInput style={styles.input} placeholder="State of Origin" value={stateOfOrigin} onChangeText={setStateOfOrigin} />
+      <TextInput style={styles.input} placeholder="Nationality" value={nationality} onChangeText={setNationality} />
+      <TextInput style={styles.input} placeholder="LGA" value={lga} onChangeText={setLga} />
+      <TextInput style={styles.input} placeholder="Student Address" value={studentAddress} onChangeText={setStudentAddress} />
+      <TextInput style={styles.input} placeholder="Passkey (optional)" value={password} onChangeText={setPassword} secureTextEntry />
 
       <Text style={styles.sectionTitle}>Classes</Text>
 
       <View style={styles.pickerWrapper}>
-        <Picker
-          selectedValue={admissionClassId}
-          onValueChange={setAdmissionClassId}
-          style={styles.picker}
-        >
+        <Picker selectedValue={admissionClassId} onValueChange={setAdmissionClassId} style={styles.picker}>
           <Picker.Item label="Class Admitted Into" value="" />
           {classes.map((cls) => (
             <Picker.Item key={cls.id} label={cls.name} value={cls.id} />
@@ -232,11 +191,7 @@ export default function RegisterStudentScreen() {
       </View>
 
       <View style={styles.pickerWrapper}>
-        <Picker
-          selectedValue={currentClassId}
-          onValueChange={setCurrentClassId}
-          style={styles.picker}
-        >
+        <Picker selectedValue={currentClassId} onValueChange={setCurrentClassId} style={styles.picker}>
           <Picker.Item label="Current Class" value="" />
           {classes.map((cls) => (
             <Picker.Item key={cls.id} label={cls.name} value={cls.id} />
@@ -244,76 +199,29 @@ export default function RegisterStudentScreen() {
         </Picker>
       </View>
 
+      {classes.length === 0 && (
+        <Text style={styles.warning}>
+          No classes found. Please add classes first in the Classes section.
+        </Text>
+      )}
+
       <Text style={styles.sectionTitle}>Parent Details</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Parent's Name"
-        value={parentName}
-        onChangeText={setParentName}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Parent Phone"
-        value={parentPhone}
-        onChangeText={setParentPhone}
-        keyboardType="phone-pad"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Parent Email"
-        value={parentEmail}
-        onChangeText={setParentEmail}
-        keyboardType="email-address"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Parent Address"
-        value={parentAddress}
-        onChangeText={setParentAddress}
-      />
+      <TextInput style={styles.input} placeholder="Parent's Name" value={parentName} onChangeText={setParentName} />
+      <TextInput style={styles.input} placeholder="Parent Phone" value={parentPhone} onChangeText={setParentPhone} keyboardType="phone-pad" />
+      <TextInput style={styles.input} placeholder="Parent Email" value={parentEmail} onChangeText={setParentEmail} keyboardType="email-address" />
+      <TextInput style={styles.input} placeholder="Parent Address" value={parentAddress} onChangeText={setParentAddress} />
 
       <Text style={styles.sectionTitle}>Guardian Details</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Guardian Name"
-        value={guardianName}
-        onChangeText={setGuardianName}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Guardian Phone"
-        value={guardianPhone}
-        onChangeText={setGuardianPhone}
-        keyboardType="phone-pad"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Guardian Email"
-        value={guardianEmail}
-        onChangeText={setGuardianEmail}
-        keyboardType="email-address"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Guardian Address"
-        value={guardianAddress}
-        onChangeText={setGuardianAddress}
-      />
+      <TextInput style={styles.input} placeholder="Guardian Name" value={guardianName} onChangeText={setGuardianName} />
+      <TextInput style={styles.input} placeholder="Guardian Phone" value={guardianPhone} onChangeText={setGuardianPhone} keyboardType="phone-pad" />
+      <TextInput style={styles.input} placeholder="Guardian Email" value={guardianEmail} onChangeText={setGuardianEmail} keyboardType="email-address" />
+      <TextInput style={styles.input} placeholder="Guardian Address" value={guardianAddress} onChangeText={setGuardianAddress} />
 
       <Text style={styles.sectionTitle}>Sibling (Optional)</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Sibling Name"
-        value={siblingName}
-        onChangeText={setSiblingName}
-      />
+      <TextInput style={styles.input} placeholder="Sibling Name" value={siblingName} onChangeText={setSiblingName} />
 
       <View style={styles.pickerWrapper}>
-        <Picker
-          selectedValue={siblingClassId}
-          onValueChange={setSiblingClassId}
-          style={styles.picker}
-        >
+        <Picker selectedValue={siblingClassId} onValueChange={setSiblingClassId} style={styles.picker}>
           <Picker.Item label="Sibling Class" value="" />
           {classes.map((cls) => (
             <Picker.Item key={cls.id} label={cls.name} value={cls.id} />
@@ -322,11 +230,7 @@ export default function RegisterStudentScreen() {
       </View>
 
       <View style={styles.pickerWrapper}>
-        <Picker
-          selectedValue={siblingGender}
-          onValueChange={setSiblingGender}
-          style={styles.picker}
-        >
+        <Picker selectedValue={siblingGender} onValueChange={setSiblingGender} style={styles.picker}>
           <Picker.Item label="Sibling Sex" value="" />
           <Picker.Item label="Male" value="Male" />
           <Picker.Item label="Female" value="Female" />
@@ -338,25 +242,15 @@ export default function RegisterStudentScreen() {
         onPress={handleRegister}
         disabled={loading}
       >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Register Student</Text>
-        )}
+        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Register Student</Text>}
       </TouchableOpacity>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f1f5f9',
-  },
-  content: {
-    padding: 20,
-    paddingBottom: 60,
-  },
+  container: { flex: 1, backgroundColor: '#f1f5f9' },
+  content: { padding: 20, paddingBottom: 60 },
   header: {
     fontSize: 24,
     fontFamily: 'SpaceGrotesk_700Bold',
@@ -374,16 +268,8 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     overflow: 'hidden',
   },
-  photo: {
-    width: '100%',
-    height: '100%',
-  },
-  photoText: {
-    fontSize: 13,
-    color: '#64748b',
-    textAlign: 'center',
-    paddingHorizontal: 10,
-  },
+  photo: { width: '100%', height: '100%' },
+  photoText: { fontSize: 13, color: '#64748b', textAlign: 'center', paddingHorizontal: 10 },
   sectionTitle: {
     fontSize: 16,
     fontFamily: 'PlusJakartaSans_600SemiBold',
@@ -409,8 +295,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     overflow: 'hidden',
   },
-  picker: {
-    height: 50,
+  picker: { height: 50 },
+  warning: {
+    color: '#dc2626',
+    fontSize: 13,
+    marginBottom: 12,
+    fontFamily: 'PlusJakartaSans_400Regular',
   },
   button: {
     backgroundColor: '#1e40af',
