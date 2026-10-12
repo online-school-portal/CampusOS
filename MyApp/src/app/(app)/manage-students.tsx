@@ -261,9 +261,14 @@ export default function ManageStudentsScreen() {
   };
 
   const handleDelete = (student: any) => {
+    if (!student?.student_id) {
+      showToast('Cannot delete: missing student_id on this record', 'error');
+      return;
+    }
+
     Alert.alert(
       'Delete Student',
-      `Delete ${student.full_name}? This cannot be undone.`,
+      `Delete ${student.full_name} (${student.student_id})?\nThis removes DB row, photo & auth (same as web).`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -272,12 +277,20 @@ export default function ManageStudentsScreen() {
           onPress: async () => {
             setBusy(true);
             try {
-              // Edge function uses student_id (business id), not uuid
-              await deleteStudentViaEdge(student.student_id);
-              setStudents((prev) => prev.filter((s) => s.id !== student.id));
-              showToast('Student deleted', 'success');
+              console.log('[delete] calling edge with student_id=', student.student_id);
+
+              // Exact same as web: body { student_id: business id }
+              // Edge function uses service role for private image + auth cleanup
+              const result = await deleteStudentViaEdge(student.student_id);
+
+              console.log('[delete] edge response=', result);
+
+              // Reload from server — don't trust local list only
+              await loadStudents();
+
+              showToast('Student deleted successfully!', 'success');
             } catch (err: any) {
-              console.log('Delete error:', err);
+              console.log('[delete] FAILED full error:', err);
               showToast(getFriendlyError(err), 'error');
             } finally {
               setBusy(false);
