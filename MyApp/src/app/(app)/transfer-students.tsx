@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Alert,
   ScrollView,
+  Image,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { supabase } from '@/lib/supabase';
@@ -55,7 +56,7 @@ export default function TransferStudentsScreen() {
 
       const { data, error } = await supabase
         .from('students')
-        .select('id, full_name, student_id, class_id')
+        .select('id, full_name, student_id, class_id, image_url')
         .eq('school_id', schoolId)
         .eq('class_id', classId)
         .order('full_name');
@@ -64,12 +65,22 @@ export default function TransferStudentsScreen() {
       setStudents(data || []);
       setSelectedStudent('');
     } catch (err) {
-      console.log(err);
+      console.log('Load students error:', err);
+      setStudents([]);
     }
   };
 
   const getClassName = (id: string) => {
     return classes.find((c) => c.id === id)?.name || null;
+  };
+
+  const selectedStudentData = students.find((s) => s.id === selectedStudent);
+
+  const resetForm = () => {
+    setSelectedClass('');
+    setSelectedStudent('');
+    setNewClass('');
+    setStudents([]);
   };
 
   const handleTransfer = async () => {
@@ -96,19 +107,10 @@ export default function TransferStudentsScreen() {
 
       if (error) throw error;
 
-      const studentName =
-        students.find((s) => s.id === selectedStudent)?.full_name || 'Student';
+      const studentName = selectedStudentData?.full_name || 'Student';
 
-      Alert.alert('Success', `${studentName} transferred successfully`, [
-        {
-          text: 'OK',
-          onPress: () => {
-            setSelectedStudent('');
-            setNewClass('');
-            loadStudentsByClass(selectedClass);
-          },
-        },
-      ]);
+      Alert.alert('Success', `${studentName} transferred successfully`);
+      resetForm();
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Transfer failed');
     } finally {
@@ -133,7 +135,11 @@ export default function TransferStudentsScreen() {
         <View style={styles.pickerWrapper}>
           <Picker
             selectedValue={selectedClass}
-            onValueChange={setSelectedClass}
+            onValueChange={(val) => {
+              setSelectedClass(val);
+              setSelectedStudent('');
+              setNewClass('');
+            }}
             style={styles.picker}
           >
             <Picker.Item label="Select current class" value="" color="#94a3b8" />
@@ -149,9 +155,19 @@ export default function TransferStudentsScreen() {
             selectedValue={selectedStudent}
             onValueChange={setSelectedStudent}
             style={styles.picker}
-            enabled={!!selectedClass}
+            enabled={!!selectedClass && students.length > 0}
           >
-            <Picker.Item label="Select student" value="" color="#94a3b8" />
+            <Picker.Item
+              label={
+                !selectedClass
+                  ? 'Select class first'
+                  : students.length === 0
+                  ? 'No students in this class'
+                  : 'Select student'
+              }
+              value=""
+              color="#94a3b8"
+            />
             {students.map((student) => (
               <Picker.Item
                 key={student.id}
@@ -161,6 +177,30 @@ export default function TransferStudentsScreen() {
             ))}
           </Picker>
         </View>
+
+        {/* Show selected student with photo */}
+        {selectedStudentData ? (
+          <View style={styles.studentPreview}>
+            {selectedStudentData.image_url ? (
+              <Image
+                source={{ uri: selectedStudentData.image_url }}
+                style={styles.studentAvatar}
+              />
+            ) : (
+              <View style={[styles.studentAvatar, styles.avatarPlaceholder]}>
+                <Text style={styles.avatarLetter}>
+                  {(selectedStudentData.full_name || '?')[0].toUpperCase()}
+                </Text>
+              </View>
+            )}
+            <View>
+              <Text style={styles.studentName}>{selectedStudentData.full_name}</Text>
+              <Text style={styles.studentId}>
+                ID: {selectedStudentData.student_id || 'N/A'}
+              </Text>
+            </View>
+          </View>
+        ) : null}
 
         {selectedClass && students.length === 0 ? (
           <Text style={styles.warning}>No students in this class</Text>
@@ -226,6 +266,43 @@ const styles = StyleSheet.create({
   },
   picker: {
     height: 50,
+  },
+  studentPreview: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#eff6ff',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+  },
+  studentAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#e2e8f0',
+  },
+  avatarPlaceholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#dbeafe',
+  },
+  avatarLetter: {
+    fontSize: 18,
+    fontFamily: 'SpaceGrotesk_700Bold',
+    color: '#1e40af',
+  },
+  studentName: {
+    fontSize: 15,
+    fontFamily: 'PlusJakartaSans_600SemiBold',
+    color: '#0f172a',
+  },
+  studentId: {
+    fontSize: 13,
+    color: '#64748b',
+    marginTop: 2,
   },
   warning: {
     color: '#dc2626',

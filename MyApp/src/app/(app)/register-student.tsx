@@ -55,17 +55,12 @@ export default function RegisterStudentScreen() {
 
   useEffect(() => {
     loadClasses();
-
-    // Realtime: refresh classes when they change
     const channel = supabase
       .channel('register-classes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'classes' },
-        () => loadClasses()
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'classes' }, () =>
+        loadClasses()
       )
       .subscribe();
-
     return () => {
       supabase.removeChannel(channel);
     };
@@ -172,11 +167,9 @@ export default function RegisterStudentScreen() {
         const fileName = `${studentId}_${Date.now()}.${ext}`;
         const response = await fetch(photo);
         const blob = await response.blob();
-
         const { error: uploadError } = await supabase.storage
           .from('student-photos')
           .upload(fileName, blob);
-
         if (!uploadError) {
           const { data: publicUrl } = supabase.storage
             .from('student-photos')
@@ -219,9 +212,7 @@ export default function RegisterStudentScreen() {
       if (error) throw error;
 
       resetForm();
-      Alert.alert('Success', 'Student registered successfully', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      Alert.alert('Success', 'Student registered successfully');
     } catch (err: any) {
       console.log(err);
       Alert.alert('Error', err.message || 'Failed to register student');
@@ -243,7 +234,6 @@ export default function RegisterStudentScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.header}>Register Student</Text>
 
-        {/* Photo + Camera */}
         <View style={styles.photoWrapper}>
           <TouchableOpacity style={styles.photoBox} onPress={pickFromGallery}>
             {photo ? (
@@ -278,34 +268,43 @@ export default function RegisterStudentScreen() {
           autoCapitalize="characters"
         />
 
-        {/* Date of Birth with clear label */}
-        <Text style={styles.fieldLabel}>Date of Birth</Text>
+        {/* DOB looks like Select Sex — same picker-style box with placeholder inside */}
         {Platform.OS === 'web' ? (
-          <View style={styles.input}>
+          <View style={styles.pickerWrapper}>
             {/* @ts-ignore */}
             <input
               type="date"
               value={dateOfBirth}
               onChange={(e: any) => setDateOfBirth(e.target.value)}
               style={{
+                width: '100%',
+                height: 50,
                 border: 'none',
                 outline: 'none',
+                paddingLeft: 14,
+                paddingRight: 14,
                 fontSize: 15,
-                width: '100%',
                 backgroundColor: 'transparent',
                 color: dateOfBirth ? '#0f172a' : '#94a3b8',
+                fontFamily: 'inherit',
               }}
             />
+            {!dateOfBirth ? (
+              <Text style={styles.datePlaceholderOverlay} pointerEvents="none">
+                Date of Birth
+              </Text>
+            ) : null}
           </View>
         ) : (
           <>
             <TouchableOpacity
-              style={styles.input}
+              style={styles.pickerStyleBox}
               onPress={() => setShowDatePicker(true)}
             >
               <Text style={dateOfBirth ? styles.dateText : styles.placeholderText}>
-                {dateOfBirth || 'Tap to select date of birth'}
+                {dateOfBirth || 'Date of Birth'}
               </Text>
+              <Ionicons name="chevron-down" size={16} color="#94a3b8" />
             </TouchableOpacity>
             {showDatePicker && DateTimePicker ? (
               <DateTimePicker
@@ -453,12 +452,6 @@ const styles = StyleSheet.create({
     marginTop: 20,
     marginBottom: 12,
   },
-  fieldLabel: {
-    fontSize: 13,
-    fontFamily: 'PlusJakartaSans_600SemiBold',
-    color: '#64748b',
-    marginBottom: 6,
-  },
   input: {
     backgroundColor: '#ffffff',
     borderWidth: 1.5,
@@ -470,6 +463,18 @@ const styles = StyleSheet.create({
     fontFamily: 'PlusJakartaSans_400Regular',
     color: '#0f172a',
   },
+  pickerStyleBox: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1.5,
+    borderColor: '#e2e8f0',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    height: 50,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   dateText: {
     fontSize: 15,
     fontFamily: 'PlusJakartaSans_400Regular',
@@ -480,6 +485,14 @@ const styles = StyleSheet.create({
     fontFamily: 'PlusJakartaSans_400Regular',
     color: '#94a3b8',
   },
+  datePlaceholderOverlay: {
+    position: 'absolute',
+    left: 14,
+    top: 15,
+    fontSize: 15,
+    color: '#94a3b8',
+    fontFamily: 'PlusJakartaSans_400Regular',
+  },
   pickerWrapper: {
     backgroundColor: '#ffffff',
     borderWidth: 1.5,
@@ -487,6 +500,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 12,
     overflow: 'hidden',
+    position: 'relative',
   },
   picker: { height: 50 },
   warning: {
