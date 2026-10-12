@@ -55,9 +55,9 @@ export default function TransferStudentsScreen() {
 
       const { data, error } = await supabase
         .from('students')
-        .select('id, full_name, student_id, current_class')
+        .select('id, full_name, student_id, class_id')
         .eq('school_id', schoolId)
-        .eq('current_class', classId)
+        .eq('class_id', classId)
         .order('full_name');
 
       if (error) throw error;
@@ -66,6 +66,10 @@ export default function TransferStudentsScreen() {
     } catch (err) {
       console.log(err);
     }
+  };
+
+  const getClassName = (id: string) => {
+    return classes.find((c) => c.id === id)?.name || null;
   };
 
   const handleTransfer = async () => {
@@ -82,9 +86,13 @@ export default function TransferStudentsScreen() {
     setTransferring(true);
 
     try {
+      // Update both UUID FK and text label
       const { error } = await supabase
         .from('students')
-        .update({ current_class: newClass })
+        .update({
+          class_id: newClass,
+          student_class: getClassName(newClass),
+        })
         .eq('id', selectedStudent);
 
       if (error) throw error;
@@ -126,7 +134,7 @@ export default function TransferStudentsScreen() {
           onValueChange={setSelectedClass}
           style={styles.picker}
         >
-          <Picker.Item label="Select current class" value="" />
+          <Picker.Item label="Select current class" value="" color="#94a3b8" />
           {classes.map((cls) => (
             <Picker.Item key={cls.id} label={cls.name} value={cls.id} />
           ))}
@@ -141,7 +149,7 @@ export default function TransferStudentsScreen() {
           style={styles.picker}
           enabled={!!selectedClass}
         >
-          <Picker.Item label="Select student" value="" />
+          <Picker.Item label="Select student" value="" color="#94a3b8" />
           {students.map((student) => (
             <Picker.Item
               key={student.id}
@@ -163,7 +171,7 @@ export default function TransferStudentsScreen() {
           onValueChange={setNewClass}
           style={styles.picker}
         >
-          <Picker.Item label="Select new class" value="" />
+          <Picker.Item label="Select new class" value="" color="#94a3b8" />
           {classes
             .filter((cls) => cls.id !== selectedClass)
             .map((cls) => (

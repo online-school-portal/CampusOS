@@ -42,8 +42,9 @@ export default function ManageStudentsScreen() {
         .eq('school_id', schoolId)
         .order('created_at', { ascending: false });
 
+      // Filter by class_id (UUID FK)
       if (selectedClass && selectedClass !== 'all') {
-        query = query.eq('current_class', selectedClass);
+        query = query.eq('class_id', selectedClass);
       }
 
       const { data, error } = await query;
@@ -65,10 +66,7 @@ export default function ManageStudentsScreen() {
   }, []);
 
   useEffect(() => {
-    // Only show full spinner on first load; filter changes just refresh list
-    if (!loading) {
-      loadStudents();
-    }
+    if (!loading) loadStudents();
   }, [selectedClass, loadStudents]);
 
   const onRefresh = async () => {
@@ -139,7 +137,7 @@ export default function ManageStudentsScreen() {
           Sex: <Text style={styles.value}>{item.sex || '—'}</Text>
         </Text>
         <Text style={styles.label}>
-          Class: <Text style={styles.value}>{getClassName(item.current_class)}</Text>
+          Class: <Text style={styles.value}>{getClassName(item.class_id)}</Text>
         </Text>
       </View>
 
@@ -173,6 +171,7 @@ export default function ManageStudentsScreen() {
       <TextInput
         style={styles.search}
         placeholder="Search by name or ID..."
+        placeholderTextColor="#94a3b8"
         value={search}
         onChangeText={setSearch}
       />
@@ -229,6 +228,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     marginBottom: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
+    color: '#0f172a',
   },
   pickerWrapper: {
     backgroundColor: '#ffffff',
@@ -284,18 +284,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 12,
   },
-  label: {
-    fontSize: 13,
-    color: '#64748b',
-  },
+  label: { fontSize: 13, color: '#64748b' },
   value: {
     fontFamily: 'PlusJakartaSans_600SemiBold',
     color: '#334155',
   },
-  actions: {
-    flexDirection: 'row',
-    gap: 10,
-  },
+  actions: { flexDirection: 'row', gap: 10 },
   editBtn: {
     flex: 1,
     flexDirection: 'row',

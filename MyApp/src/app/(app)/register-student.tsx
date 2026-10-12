@@ -8,10 +8,12 @@ import {
   TouchableOpacity,
   Alert,
   Image,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Picker } from '@react-native-picker/picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { supabase } from '@/lib/supabase';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
@@ -21,10 +23,11 @@ export default function RegisterStudentScreen() {
   const [loadingClasses, setLoadingClasses] = useState(true);
   const [photo, setPhoto] = useState<string | null>(null);
   const [classes, setClasses] = useState<any[]>([]);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const [fullName, setFullName] = useState('');
   const [studentId, setStudentId] = useState('');
-  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState<Date | null>(null);
   const [sex, setSex] = useState('');
   const [stateOfOrigin, setStateOfOrigin] = useState('');
   const [nationality, setNationality] = useState('');
@@ -43,7 +46,7 @@ export default function RegisterStudentScreen() {
   const [guardianAddress, setGuardianAddress] = useState('');
   const [siblingName, setSiblingName] = useState('');
   const [siblingClassId, setSiblingClassId] = useState('');
-  const [siblingGender, setSiblingGender] = useState('');
+  const [siblingSex, setSiblingSex] = useState('');
 
   useEffect(() => {
     loadClasses();
@@ -56,7 +59,6 @@ export default function RegisterStudentScreen() {
         .from('classes')
         .select('id, name')
         .order('name', { ascending: true });
-
       if (error) throw error;
       setClasses(data || []);
     } catch (err) {
@@ -66,6 +68,32 @@ export default function RegisterStudentScreen() {
     }
   };
 
+  const resetForm = () => {
+    setFullName('');
+    setStudentId('');
+    setDateOfBirth(null);
+    setSex('');
+    setStateOfOrigin('');
+    setNationality('');
+    setLga('');
+    setStudentAddress('');
+    setPassword('');
+    setAdmissionClassId('');
+    setCurrentClassId('');
+    setParentName('');
+    setParentPhone('');
+    setParentEmail('');
+    setParentAddress('');
+    setGuardianName('');
+    setGuardianPhone('');
+    setGuardianEmail('');
+    setGuardianAddress('');
+    setSiblingName('');
+    setSiblingClassId('');
+    setSiblingSex('');
+    setPhoto(null);
+  };
+
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -73,10 +101,23 @@ export default function RegisterStudentScreen() {
       aspect: [1, 1],
       quality: 0.7,
     });
-
     if (!result.canceled) {
       setPhoto(result.assets[0].uri);
     }
+  };
+
+  const onDateChange = (_event: any, selectedDate?: Date) => {
+    setShowDatePicker(Platform.OS === 'ios');
+    if (selectedDate) setDateOfBirth(selectedDate);
+  };
+
+  const formatDate = (date: Date | null) => {
+    if (!date) return '';
+    return date.toISOString().split('T')[0];
+  };
+
+  const getClassName = (id: string) => {
+    return classes.find((c) => c.id === id)?.name || null;
   };
 
   const handleRegister = async () => {
@@ -92,6 +133,7 @@ export default function RegisterStudentScreen() {
       if (schoolError) throw schoolError;
 
       let imageUrl: string | null = null;
+      let imagePath: string | null = null;
 
       if (photo) {
         const ext = photo.split('.').pop() || 'jpg';
@@ -108,20 +150,30 @@ export default function RegisterStudentScreen() {
             .from('student-photos')
             .getPublicUrl(fileName);
           imageUrl = publicUrl.publicUrl;
+          imagePath = fileName;
         }
       }
 
+      // Matches your exact schema
       const { error } = await supabase.from('students').insert({
         full_name: fullName.trim(),
         student_id: studentId.trim(),
-        date_of_birth: dateOfBirth || null,
+        date_of_birth: dateOfBirth ? formatDate(dateOfBirth) : null,
         sex: sex || null,
         state_of_origin: stateOfOrigin || null,
         nationality: nationality || null,
         lga: lga || null,
         student_address: studentAddress || null,
-        admission_class: admissionClassId || null,
-        current_class: currentClassId || null,
+        // UUID FKs
+        class_id: currentClassId || null,
+        admission_class_id: admissionClassId || null,
+        sibling_class_id: siblingClassId || null,
+        // Text labels (kept in sync for compatibility)
+        student_class: currentClassId ? getClassName(currentClassId) : null,
+        admission_class: admissionClassId ? getClassName(admissionClassId) : null,
+        sibling_class: siblingClassId ? getClassName(siblingClassId) : null,
+        sibling_name: siblingName || null,
+        sibling_sex: siblingSex || null,
         parent_name: parentName || null,
         parent_phone: parentPhone || null,
         parent_email: parentEmail || null,
@@ -130,15 +182,14 @@ export default function RegisterStudentScreen() {
         guardian_phone: guardianPhone || null,
         guardian_email: guardianEmail || null,
         guardian_address: guardianAddress || null,
-        sibling_name: siblingName || null,
-        sibling_class: siblingClassId || null,
-        sibling_gender: siblingGender || null,
         image_url: imageUrl,
+        image_path: imagePath,
         school_id: schoolId,
       });
 
       if (error) throw error;
 
+      resetForm();
       Alert.alert('Success', 'Student registered successfully', [
         { text: 'OK', onPress: () => router.back() },
       ]);
@@ -170,29 +221,44 @@ export default function RegisterStudentScreen() {
 
       <Text style={styles.sectionTitle}>Student Details</Text>
 
-      <TextInput style={styles.input} placeholder="Full Name *" value={fullName} onChangeText={setFullName} />
-      <TextInput style={styles.input} placeholder="Student ID *" value={studentId} onChangeText={setStudentId} autoCapitalize="characters" />
-      <TextInput style={styles.input} placeholder="Date of Birth (YYYY-MM-DD)" value={dateOfBirth} onChangeText={setDateOfBirth} />
+      <TextInput style={styles.input} placeholder="Full Name *" placeholderTextColor="#94a3b8" value={fullName} onChangeText={setFullName} />
+      <TextInput style={styles.input} placeholder="Student ID *" placeholderTextColor="#94a3b8" value={studentId} onChangeText={setStudentId} autoCapitalize="characters" />
+
+      <TouchableOpacity style={styles.input} onPress={() => setShowDatePicker(true)}>
+        <Text style={dateOfBirth ? styles.dateText : styles.placeholderText}>
+          {dateOfBirth ? formatDate(dateOfBirth) : 'Date of Birth'}
+        </Text>
+      </TouchableOpacity>
+
+      {showDatePicker && (
+        <DateTimePicker
+          value={dateOfBirth || new Date(2010, 0, 1)}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={onDateChange}
+          maximumDate={new Date()}
+        />
+      )}
 
       <View style={styles.pickerWrapper}>
         <Picker selectedValue={sex} onValueChange={setSex} style={styles.picker}>
-          <Picker.Item label="Select Sex" value="" />
+          <Picker.Item label="Select Sex" value="" color="#94a3b8" />
           <Picker.Item label="Male" value="Male" />
           <Picker.Item label="Female" value="Female" />
         </Picker>
       </View>
 
-      <TextInput style={styles.input} placeholder="State of Origin" value={stateOfOrigin} onChangeText={setStateOfOrigin} />
-      <TextInput style={styles.input} placeholder="Nationality" value={nationality} onChangeText={setNationality} />
-      <TextInput style={styles.input} placeholder="LGA" value={lga} onChangeText={setLga} />
-      <TextInput style={styles.input} placeholder="Student Address" value={studentAddress} onChangeText={setStudentAddress} />
-      <TextInput style={styles.input} placeholder="Passkey (optional)" value={password} onChangeText={setPassword} secureTextEntry />
+      <TextInput style={styles.input} placeholder="State of Origin" placeholderTextColor="#94a3b8" value={stateOfOrigin} onChangeText={setStateOfOrigin} />
+      <TextInput style={styles.input} placeholder="Nationality" placeholderTextColor="#94a3b8" value={nationality} onChangeText={setNationality} />
+      <TextInput style={styles.input} placeholder="LGA" placeholderTextColor="#94a3b8" value={lga} onChangeText={setLga} />
+      <TextInput style={styles.input} placeholder="Student Address" placeholderTextColor="#94a3b8" value={studentAddress} onChangeText={setStudentAddress} />
+      <TextInput style={styles.input} placeholder="Passkey (optional)" placeholderTextColor="#94a3b8" value={password} onChangeText={setPassword} secureTextEntry />
 
       <Text style={styles.sectionTitle}>Classes</Text>
 
       <View style={styles.pickerWrapper}>
         <Picker selectedValue={admissionClassId} onValueChange={setAdmissionClassId} style={styles.picker}>
-          <Picker.Item label="Class Admitted Into" value="" />
+          <Picker.Item label="Class Admitted Into" value="" color="#94a3b8" />
           {classes.map((cls) => (
             <Picker.Item key={cls.id} label={cls.name} value={cls.id} />
           ))}
@@ -201,7 +267,7 @@ export default function RegisterStudentScreen() {
 
       <View style={styles.pickerWrapper}>
         <Picker selectedValue={currentClassId} onValueChange={setCurrentClassId} style={styles.picker}>
-          <Picker.Item label="Current Class" value="" />
+          <Picker.Item label="Current Class" value="" color="#94a3b8" />
           {classes.map((cls) => (
             <Picker.Item key={cls.id} label={cls.name} value={cls.id} />
           ))}
@@ -209,29 +275,27 @@ export default function RegisterStudentScreen() {
       </View>
 
       {classes.length === 0 && (
-        <Text style={styles.warning}>
-          No classes found. Please add classes first in the Classes section.
-        </Text>
+        <Text style={styles.warning}>No classes found. Please add classes first.</Text>
       )}
 
       <Text style={styles.sectionTitle}>Parent Details</Text>
-      <TextInput style={styles.input} placeholder="Parent's Name" value={parentName} onChangeText={setParentName} />
-      <TextInput style={styles.input} placeholder="Parent Phone" value={parentPhone} onChangeText={setParentPhone} keyboardType="phone-pad" />
-      <TextInput style={styles.input} placeholder="Parent Email" value={parentEmail} onChangeText={setParentEmail} keyboardType="email-address" />
-      <TextInput style={styles.input} placeholder="Parent Address" value={parentAddress} onChangeText={setParentAddress} />
+      <TextInput style={styles.input} placeholder="Parent's Name" placeholderTextColor="#94a3b8" value={parentName} onChangeText={setParentName} />
+      <TextInput style={styles.input} placeholder="Parent Phone" placeholderTextColor="#94a3b8" value={parentPhone} onChangeText={setParentPhone} keyboardType="phone-pad" />
+      <TextInput style={styles.input} placeholder="Parent Email" placeholderTextColor="#94a3b8" value={parentEmail} onChangeText={setParentEmail} keyboardType="email-address" />
+      <TextInput style={styles.input} placeholder="Parent Address" placeholderTextColor="#94a3b8" value={parentAddress} onChangeText={setParentAddress} />
 
       <Text style={styles.sectionTitle}>Guardian Details</Text>
-      <TextInput style={styles.input} placeholder="Guardian Name" value={guardianName} onChangeText={setGuardianName} />
-      <TextInput style={styles.input} placeholder="Guardian Phone" value={guardianPhone} onChangeText={setGuardianPhone} keyboardType="phone-pad" />
-      <TextInput style={styles.input} placeholder="Guardian Email" value={guardianEmail} onChangeText={setGuardianEmail} keyboardType="email-address" />
-      <TextInput style={styles.input} placeholder="Guardian Address" value={guardianAddress} onChangeText={setGuardianAddress} />
+      <TextInput style={styles.input} placeholder="Guardian Name" placeholderTextColor="#94a3b8" value={guardianName} onChangeText={setGuardianName} />
+      <TextInput style={styles.input} placeholder="Guardian Phone" placeholderTextColor="#94a3b8" value={guardianPhone} onChangeText={setGuardianPhone} keyboardType="phone-pad" />
+      <TextInput style={styles.input} placeholder="Guardian Email" placeholderTextColor="#94a3b8" value={guardianEmail} onChangeText={setGuardianEmail} keyboardType="email-address" />
+      <TextInput style={styles.input} placeholder="Guardian Address" placeholderTextColor="#94a3b8" value={guardianAddress} onChangeText={setGuardianAddress} />
 
       <Text style={styles.sectionTitle}>Sibling (Optional)</Text>
-      <TextInput style={styles.input} placeholder="Sibling Name" value={siblingName} onChangeText={setSiblingName} />
+      <TextInput style={styles.input} placeholder="Sibling Name" placeholderTextColor="#94a3b8" value={siblingName} onChangeText={setSiblingName} />
 
       <View style={styles.pickerWrapper}>
         <Picker selectedValue={siblingClassId} onValueChange={setSiblingClassId} style={styles.picker}>
-          <Picker.Item label="Sibling Class" value="" />
+          <Picker.Item label="Sibling Class" value="" color="#94a3b8" />
           {classes.map((cls) => (
             <Picker.Item key={cls.id} label={cls.name} value={cls.id} />
           ))}
@@ -239,8 +303,8 @@ export default function RegisterStudentScreen() {
       </View>
 
       <View style={styles.pickerWrapper}>
-        <Picker selectedValue={siblingGender} onValueChange={setSiblingGender} style={styles.picker}>
-          <Picker.Item label="Sibling Sex" value="" />
+        <Picker selectedValue={siblingSex} onValueChange={setSiblingSex} style={styles.picker}>
+          <Picker.Item label="Sibling Sex" value="" color="#94a3b8" />
           <Picker.Item label="Male" value="Male" />
           <Picker.Item label="Female" value="Female" />
         </Picker>
@@ -278,7 +342,13 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   photo: { width: '100%', height: '100%' },
-  photoText: { fontSize: 13, color: '#64748b', textAlign: 'center', paddingHorizontal: 10 },
+  photoText: {
+    fontSize: 13,
+    color: '#94a3b8',
+    textAlign: 'center',
+    paddingHorizontal: 10,
+    fontFamily: 'PlusJakartaSans_400Regular',
+  },
   sectionTitle: {
     fontSize: 16,
     fontFamily: 'PlusJakartaSans_600SemiBold',
@@ -295,6 +365,17 @@ const styles = StyleSheet.create({
     fontSize: 15,
     marginBottom: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
+    color: '#0f172a',
+  },
+  dateText: {
+    fontSize: 15,
+    fontFamily: 'PlusJakartaSans_400Regular',
+    color: '#0f172a',
+  },
+  placeholderText: {
+    fontSize: 15,
+    fontFamily: 'PlusJakartaSans_400Regular',
+    color: '#94a3b8',
   },
   pickerWrapper: {
     backgroundColor: '#ffffff',

@@ -63,7 +63,7 @@ export default function ClassesScreen() {
       const { error } = await supabase.from('classes').insert(rows);
       if (error) throw error;
 
-      setText('');
+      setText(''); // reset input after save
       await loadClasses();
       Alert.alert('Success', `${names.length} class(es) added`);
     } catch (err: any) {
@@ -99,7 +99,6 @@ export default function ClassesScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Full-screen spinner while saving */}
       <LoadingSpinner visible={saving} message="Saving..." />
 
       <Text style={styles.header}>Classes</Text>
@@ -114,6 +113,7 @@ export default function ClassesScreen() {
         multiline
         numberOfLines={5}
         placeholder={'e.g.\nJSS 1\nJSS 2\nSSS 1'}
+        placeholderTextColor="#94a3b8"
         value={text}
         onChangeText={setText}
         textAlignVertical="top"
@@ -187,6 +187,7 @@ const styles = StyleSheet.create({
     minHeight: 120,
     fontFamily: 'PlusJakartaSans_400Regular',
     marginBottom: 16,
+    color: '#0f172a',
   },
   saveBtn: {
     backgroundColor: '#1e40af',
