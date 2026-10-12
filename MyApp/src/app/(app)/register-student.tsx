@@ -9,41 +9,24 @@ import {
   Image,
   Platform,
 } from 'react-native';
-import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import { showToast, getFriendlyError } from '@/utils/toast';
+import {
+  showToast,
+  getFriendlyError,
+  uploadStudentImage,
+  createStudentViaEdge,
+} from '@/utils/toast';
 
 let DateTimePicker: any = null;
 if (Platform.OS !== 'web') {
   DateTimePicker = require('@react-native-community/datetimepicker').default;
 }
 
-async function uploadStudentPhoto(uri: string, studentId: string) {
-  const fileName = `${studentId.replace(/[^a-zA-Z0-9_-]/g, '_')}_${Date.now()}.jpg`;
-  const response = await fetch(uri);
-  const blob = await response.blob();
-  const contentType =
-    blob.type && blob.type.startsWith('image/') ? blob.type : 'image/jpeg';
-
-  const { data, error } = await supabase.storage
-    .from('student-photos')
-    .upload(fileName, blob, { contentType, upsert: true });
-
-  if (error) throw error;
-
-  const { data: publicUrl } = supabase.storage
-    .from('student-photos')
-    .getPublicUrl(data.path);
-
-  return { imageUrl: publicUrl.publicUrl, imagePath: data.path };
-}
-
 export default function RegisterStudentScreen() {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [loadingClasses, setLoadingClasses] = useState(true);
   const [photo, setPhoto] = useState<string | null>(null);
@@ -75,15 +58,6 @@ export default function RegisterStudentScreen() {
 
   useEffect(() => {
     loadClasses();
-    const channel = supabase
-      .channel('register-classes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'classes' }, () =>
-        loadClasses()
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, []);
 
   const loadClasses = async () => {
@@ -183,24 +157,22 @@ export default function RegisterStudentScreen() {
 
     setLoading(true);
     try {
-      const { data: schoolId, error: schoolError } =
-        await supabase.rpc('current_user_school_id');
-      if (schoolError) throw schoolError;
+      let image_url: string | null = null;
+      let image_path: string | null = null;
 
-      let imageUrl: string | null = null;
-      let imagePath: string | null = null;
-
+      // Upload via edge function (same as web)
       if (photo) {
         try {
-          const uploaded = await uploadStudentPhoto(photo, studentId);
-          imageUrl = uploaded.imageUrl;
-          imagePath = uploaded.imagePath;
+          const uploaded = await uploadStudentImage(photo);
+          image_url = uploaded.image_url;
+          image_path = uploaded.image_path;
         } catch (uploadErr) {
           showToast(getFriendlyError(uploadErr), 'error');
+          // continue without photo if upload fails
         }
       }
 
-      const { error } = await supabase.from('students').insert({
+      const payload = {
         full_name: fullName.trim(),
         student_id: studentId.trim(),
         date_of_birth: dateOfBirth || null,
@@ -225,15 +197,21 @@ export default function RegisterStudentScreen() {
         guardian_phone: guardianPhone || null,
         guardian_email: guardianEmail || null,
         guardian_address: guardianAddress || null,
-        image_url: imageUrl,
-        image_path: imagePath,
-        school_id: schoolId,
-      });
+        image_url,
+        image_path,
+        password: password.trim() || null,
+      };
 
-      if (error) throw error;
+      // Create via edge function (auth + row) — same as web
+      const result = await createStudentViaEdge(payload);
 
       resetForm();
-      showToast('Student registered successfully', 'success');
+      showToast(
+        `Student registered! ID: ${result.student_id || studentId}${
+          result.password_used ? ` | Password: ${result.password_used}` : ''
+        }`,
+        'success'
+      );
     } catch (err: any) {
       console.log(err);
       showToast(getFriendlyError(err), 'error');
@@ -273,9 +251,13 @@ export default function RegisterStudentScreen() {
 
         <Text style={styles.sectionTitle}>Student Details</Text>
 
-        <TextInput style={styles.input} placeholder="Full Name *" placeholderTextColor="#94a3b8" value={fullName} onChangeText={setFullName} />
-        <TextInput style={styles.input} placeholder="Student ID *" placeholderTextColor="#94a3b8" value={studentId} onChangeText={setStudentId} autoCapitalize="characters" />
+        <Text style={styles.fieldLabel}>Full Name *</Text>
+        <TextInput style={styles.input} placeholder="Full Name" placeholderTextColor="#94a3b8" value={fullName} onChangeText={setFullName} />
 
+        <Text style={styles.fieldLabel}>Student ID *</Text>
+        <TextInput style={styles.input} placeholder="Student ID" placeholderTextColor="#94a3b8" value={studentId} onChangeText={setStudentId} autoCapitalize="characters" />
+
+        <Text style={styles.fieldLabel}>Date of Birth</Text>
         {Platform.OS === 'web' ? (
           <View style={styles.pickerWrapper}>
             {/* @ts-ignore */}
@@ -289,11 +271,9 @@ export default function RegisterStudentScreen() {
                 border: 'none',
                 outline: 'none',
                 paddingLeft: 14,
-                paddingRight: 14,
                 fontSize: 15,
                 backgroundColor: 'transparent',
                 color: dateOfBirth ? '#0f172a' : '#94a3b8',
-                fontFamily: 'inherit',
               }}
             />
             {!dateOfBirth ? (
@@ -325,6 +305,7 @@ export default function RegisterStudentScreen() {
           </>
         )}
 
+        <Text style={styles.fieldLabel}>Sex</Text>
         <View style={styles.pickerWrapper}>
           <Picker selectedValue={sex} onValueChange={setSex} style={styles.picker}>
             <Picker.Item label="Select Sex" value="" color="#94a3b8" />
@@ -333,11 +314,16 @@ export default function RegisterStudentScreen() {
           </Picker>
         </View>
 
+        <Text style={styles.fieldLabel}>State of Origin</Text>
         <TextInput style={styles.input} placeholder="State of Origin" placeholderTextColor="#94a3b8" value={stateOfOrigin} onChangeText={setStateOfOrigin} />
+        <Text style={styles.fieldLabel}>Nationality</Text>
         <TextInput style={styles.input} placeholder="Nationality" placeholderTextColor="#94a3b8" value={nationality} onChangeText={setNationality} />
+        <Text style={styles.fieldLabel}>LGA</Text>
         <TextInput style={styles.input} placeholder="LGA" placeholderTextColor="#94a3b8" value={lga} onChangeText={setLga} />
+        <Text style={styles.fieldLabel}>Student Address</Text>
         <TextInput style={styles.input} placeholder="Student Address" placeholderTextColor="#94a3b8" value={studentAddress} onChangeText={setStudentAddress} />
-        <TextInput style={styles.input} placeholder="Passkey (optional)" placeholderTextColor="#94a3b8" value={password} onChangeText={setPassword} secureTextEntry />
+        <Text style={styles.fieldLabel}>Passkey (optional)</Text>
+        <TextInput style={styles.input} placeholder="Passkey" placeholderTextColor="#94a3b8" value={password} onChangeText={setPassword} secureTextEntry />
 
         <Text style={styles.sectionTitle}>Classes</Text>
         <Text style={styles.fieldLabel}>Class Admitted Into</Text>
@@ -365,20 +351,29 @@ export default function RegisterStudentScreen() {
         ) : null}
 
         <Text style={styles.sectionTitle}>Parent Details</Text>
+        <Text style={styles.fieldLabel}>Parent's Name</Text>
         <TextInput style={styles.input} placeholder="Parent's Name" placeholderTextColor="#94a3b8" value={parentName} onChangeText={setParentName} />
+        <Text style={styles.fieldLabel}>Parent Phone</Text>
         <TextInput style={styles.input} placeholder="Parent Phone" placeholderTextColor="#94a3b8" value={parentPhone} onChangeText={setParentPhone} keyboardType="phone-pad" />
+        <Text style={styles.fieldLabel}>Parent Email</Text>
         <TextInput style={styles.input} placeholder="Parent Email" placeholderTextColor="#94a3b8" value={parentEmail} onChangeText={setParentEmail} keyboardType="email-address" />
+        <Text style={styles.fieldLabel}>Parent Address</Text>
         <TextInput style={styles.input} placeholder="Parent Address" placeholderTextColor="#94a3b8" value={parentAddress} onChangeText={setParentAddress} />
 
         <Text style={styles.sectionTitle}>Guardian Details</Text>
+        <Text style={styles.fieldLabel}>Guardian Name</Text>
         <TextInput style={styles.input} placeholder="Guardian Name" placeholderTextColor="#94a3b8" value={guardianName} onChangeText={setGuardianName} />
+        <Text style={styles.fieldLabel}>Guardian Phone</Text>
         <TextInput style={styles.input} placeholder="Guardian Phone" placeholderTextColor="#94a3b8" value={guardianPhone} onChangeText={setGuardianPhone} keyboardType="phone-pad" />
+        <Text style={styles.fieldLabel}>Guardian Email</Text>
         <TextInput style={styles.input} placeholder="Guardian Email" placeholderTextColor="#94a3b8" value={guardianEmail} onChangeText={setGuardianEmail} keyboardType="email-address" />
+        <Text style={styles.fieldLabel}>Guardian Address</Text>
         <TextInput style={styles.input} placeholder="Guardian Address" placeholderTextColor="#94a3b8" value={guardianAddress} onChangeText={setGuardianAddress} />
 
         <Text style={styles.sectionTitle}>Sibling (Optional)</Text>
+        <Text style={styles.fieldLabel}>Sibling Name</Text>
         <TextInput style={styles.input} placeholder="Sibling Name" placeholderTextColor="#94a3b8" value={siblingName} onChangeText={setSiblingName} />
-
+        <Text style={styles.fieldLabel}>Sibling Class</Text>
         <View style={styles.pickerWrapper}>
           <Picker selectedValue={siblingClassId} onValueChange={setSiblingClassId} style={styles.picker}>
             <Picker.Item label="Sibling Class" value="" color="#94a3b8" />
@@ -387,7 +382,7 @@ export default function RegisterStudentScreen() {
             ))}
           </Picker>
         </View>
-
+        <Text style={styles.fieldLabel}>Sibling Sex</Text>
         <View style={styles.pickerWrapper}>
           <Picker selectedValue={siblingSex} onValueChange={setSiblingSex} style={styles.picker}>
             <Picker.Item label="Sibling Sex" value="" color="#94a3b8" />

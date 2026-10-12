@@ -11,42 +11,19 @@ import {
   Modal,
   ScrollView,
   Platform,
+  Alert,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '@/lib/supabase';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import { showToast, getFriendlyError } from '@/utils/toast';
-
-/** Upload image to Supabase storage — works on web + native */
-async function uploadStudentPhoto(uri: string, studentId: string) {
-  const fileName = `${studentId.replace(/[^a-zA-Z0-9_-]/g, '_')}_${Date.now()}.jpg`;
-
-  const response = await fetch(uri);
-  const blob = await response.blob();
-
-  const contentType =
-    blob.type && blob.type.startsWith('image/') ? blob.type : 'image/jpeg';
-
-  const { data, error } = await supabase.storage
-    .from('student-photos')
-    .upload(fileName, blob, {
-      contentType,
-      upsert: true,
-    });
-
-  if (error) throw error;
-
-  const { data: publicUrl } = supabase.storage
-    .from('student-photos')
-    .getPublicUrl(data.path);
-
-  return {
-    imageUrl: publicUrl.publicUrl,
-    imagePath: data.path,
-  };
-}
+import {
+  showToast,
+  getFriendlyError,
+  updateStudentImage,
+  deleteStudentViaEdge,
+} from '@/utils/toast';
 
 export default function ManageStudentsScreen() {
   const [loading, setLoading] = useState(true);
@@ -118,21 +95,8 @@ export default function ManageStudentsScreen() {
       )
       .subscribe();
 
-    const classesChannel = supabase
-      .channel('manage-classes-rt')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'classes' },
-        () => {
-          loadClasses();
-          loadStudents();
-        }
-      )
-      .subscribe();
-
     return () => {
       supabase.removeChannel(studentsChannel);
-      supabase.removeChannel(classesChannel);
     };
   }, []);
 
@@ -223,23 +187,24 @@ export default function ManageStudentsScreen() {
       let imageUrl = editStudent.image_url;
       let imagePath = editStudent.image_path;
 
+      // New local photo → edge function update-student-image
       if (
         editPhoto &&
         editPhoto !== editStudent.image_url &&
         !editPhoto.includes('supabase.co')
       ) {
         try {
-          const uploaded = await uploadStudentPhoto(
+          const uploaded = await updateStudentImage(
+            editStudent.id,
             editPhoto,
-            form.student_id || editStudent.student_id || 'student'
+            editStudent.image_path || ''
           );
-          imageUrl = uploaded.imageUrl;
-          imagePath = uploaded.imagePath;
-          showToast('Photo uploaded', 'success');
+          imageUrl = uploaded.image_url;
+          imagePath = uploaded.image_path;
+          showToast('Photo updated', 'success');
         } catch (uploadErr: any) {
-          console.log('Upload error full:', uploadErr);
+          console.log('Upload error:', uploadErr);
           showToast(getFriendlyError(uploadErr), 'error');
-          // Continue saving other fields without new photo
         }
       }
 
@@ -288,7 +253,7 @@ export default function ManageStudentsScreen() {
       await loadStudents();
       showToast('Student updated successfully', 'success');
     } catch (err: any) {
-      console.log('Save error full:', err);
+      console.log('Save error:', err);
       showToast(getFriendlyError(err), 'error');
     } finally {
       setBusy(false);
@@ -296,8 +261,6 @@ export default function ManageStudentsScreen() {
   };
 
   const handleDelete = (student: any) => {
-    // Confirm still uses Alert so user must acknowledge
-    const { Alert } = require('react-native');
     Alert.alert(
       'Delete Student',
       `Delete ${student.full_name}? This cannot be undone.`,
@@ -309,21 +272,12 @@ export default function ManageStudentsScreen() {
           onPress: async () => {
             setBusy(true);
             try {
-              const { error } = await supabase
-                .from('students')
-                .delete()
-                .eq('id', student.id);
-
-              if (error) {
-                console.log('Delete error full:', error);
-                showToast(getFriendlyError(error), 'error');
-                return;
-              }
-
+              // Edge function uses student_id (business id), not uuid
+              await deleteStudentViaEdge(student.student_id);
               setStudents((prev) => prev.filter((s) => s.id !== student.id));
               showToast('Student deleted', 'success');
             } catch (err: any) {
-              console.log('Delete catch:', err);
+              console.log('Delete error:', err);
               showToast(getFriendlyError(err), 'error');
             } finally {
               setBusy(false);
@@ -345,6 +299,19 @@ export default function ManageStudentsScreen() {
 
   const setField = (key: string, value: string) =>
     setForm((prev: any) => ({ ...prev, [key]: value }));
+
+  const Field = ({
+    label,
+    children,
+  }: {
+    label: string;
+    children: React.ReactNode;
+  }) => (
+    <View style={{ marginBottom: 4 }}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      {children}
+    </View>
+  );
 
   const renderStudent = ({ item }: { item: any }) => (
     <View style={styles.card}>
@@ -481,132 +448,172 @@ export default function ManageStudentsScreen() {
               </TouchableOpacity>
             </View>
 
-            <TextInput
-              style={styles.input}
-              placeholder="Student ID"
-              placeholderTextColor="#94a3b8"
-              value={form.student_id}
-              onChangeText={(v) => setField('student_id', v)}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Full Name"
-              placeholderTextColor="#94a3b8"
-              value={form.full_name}
-              onChangeText={(v) => setField('full_name', v)}
-            />
-
-            <Text style={styles.fieldLabel}>Date of Birth</Text>
-            {Platform.OS === 'web' ? (
-              <View style={styles.input}>
-                {/* @ts-ignore */}
-                <input
-                  type="date"
-                  value={form.date_of_birth || ''}
-                  onChange={(e: any) => setField('date_of_birth', e.target.value)}
-                  style={{
-                    border: 'none',
-                    outline: 'none',
-                    fontSize: 15,
-                    width: '100%',
-                    backgroundColor: 'transparent',
-                  }}
-                />
-              </View>
-            ) : (
+            <Field label="Student ID">
               <TextInput
                 style={styles.input}
-                placeholder="YYYY-MM-DD"
+                placeholder="Student ID"
                 placeholderTextColor="#94a3b8"
-                value={form.date_of_birth}
-                onChangeText={(v) => setField('date_of_birth', v)}
+                value={form.student_id}
+                onChangeText={(v) => setField('student_id', v)}
               />
-            )}
+            </Field>
 
-            <View style={styles.pickerWrapper}>
-              <Picker
-                selectedValue={form.sex}
-                onValueChange={(v) => setField('sex', v)}
-                style={styles.picker}
-              >
-                <Picker.Item label="Select Sex" value="" color="#94a3b8" />
-                <Picker.Item label="Male" value="Male" />
-                <Picker.Item label="Female" value="Female" />
-              </Picker>
-            </View>
+            <Field label="Full Name">
+              <TextInput
+                style={styles.input}
+                placeholder="Full Name"
+                placeholderTextColor="#94a3b8"
+                value={form.full_name}
+                onChangeText={(v) => setField('full_name', v)}
+              />
+            </Field>
 
-            <TextInput style={styles.input} placeholder="Nationality" placeholderTextColor="#94a3b8" value={form.nationality} onChangeText={(v) => setField('nationality', v)} />
-            <TextInput style={styles.input} placeholder="State of Origin" placeholderTextColor="#94a3b8" value={form.state_of_origin} onChangeText={(v) => setField('state_of_origin', v)} />
-            <TextInput style={styles.input} placeholder="LGA" placeholderTextColor="#94a3b8" value={form.lga} onChangeText={(v) => setField('lga', v)} />
-            <TextInput style={styles.input} placeholder="Student Address" placeholderTextColor="#94a3b8" value={form.student_address} onChangeText={(v) => setField('student_address', v)} />
+            <Field label="Date of Birth">
+              {Platform.OS === 'web' ? (
+                <View style={styles.input}>
+                  {/* @ts-ignore */}
+                  <input
+                    type="date"
+                    value={form.date_of_birth || ''}
+                    onChange={(e: any) => setField('date_of_birth', e.target.value)}
+                    style={{
+                      border: 'none',
+                      outline: 'none',
+                      fontSize: 15,
+                      width: '100%',
+                      backgroundColor: 'transparent',
+                    }}
+                  />
+                </View>
+              ) : (
+                <TextInput
+                  style={styles.input}
+                  placeholder="YYYY-MM-DD"
+                  placeholderTextColor="#94a3b8"
+                  value={form.date_of_birth}
+                  onChangeText={(v) => setField('date_of_birth', v)}
+                />
+              )}
+            </Field>
+
+            <Field label="Sex">
+              <View style={styles.pickerWrapper}>
+                <Picker
+                  selectedValue={form.sex}
+                  onValueChange={(v) => setField('sex', v)}
+                  style={styles.picker}
+                >
+                  <Picker.Item label="Select Sex" value="" color="#94a3b8" />
+                  <Picker.Item label="Male" value="Male" />
+                  <Picker.Item label="Female" value="Female" />
+                </Picker>
+              </View>
+            </Field>
+
+            <Field label="Nationality">
+              <TextInput style={styles.input} placeholder="Nationality" placeholderTextColor="#94a3b8" value={form.nationality} onChangeText={(v) => setField('nationality', v)} />
+            </Field>
+            <Field label="State of Origin">
+              <TextInput style={styles.input} placeholder="State of Origin" placeholderTextColor="#94a3b8" value={form.state_of_origin} onChangeText={(v) => setField('state_of_origin', v)} />
+            </Field>
+            <Field label="LGA">
+              <TextInput style={styles.input} placeholder="LGA" placeholderTextColor="#94a3b8" value={form.lga} onChangeText={(v) => setField('lga', v)} />
+            </Field>
+            <Field label="Student Address">
+              <TextInput style={styles.input} placeholder="Student Address" placeholderTextColor="#94a3b8" value={form.student_address} onChangeText={(v) => setField('student_address', v)} />
+            </Field>
 
             <Text style={styles.sectionTitle}>Classes</Text>
 
-            <Text style={styles.fieldLabel}>Class Admitted Into</Text>
-            <View style={styles.pickerWrapper}>
-              <Picker
-                selectedValue={form.admission_class_id}
-                onValueChange={(v) => setField('admission_class_id', v)}
-                style={styles.picker}
-              >
-                <Picker.Item label="Select admission class" value="" color="#94a3b8" />
-                {classes.map((c) => (
-                  <Picker.Item key={c.id} label={c.name} value={c.id} />
-                ))}
-              </Picker>
-            </View>
+            <Field label="Class Admitted Into">
+              <View style={styles.pickerWrapper}>
+                <Picker
+                  selectedValue={form.admission_class_id}
+                  onValueChange={(v) => setField('admission_class_id', v)}
+                  style={styles.picker}
+                >
+                  <Picker.Item label="Select admission class" value="" color="#94a3b8" />
+                  {classes.map((c) => (
+                    <Picker.Item key={c.id} label={c.name} value={c.id} />
+                  ))}
+                </Picker>
+              </View>
+            </Field>
 
-            <Text style={styles.fieldLabel}>Current Class</Text>
-            <View style={styles.pickerWrapper}>
-              <Picker
-                selectedValue={form.class_id}
-                onValueChange={(v) => setField('class_id', v)}
-                style={styles.picker}
-              >
-                <Picker.Item label="Select current class" value="" color="#94a3b8" />
-                {classes.map((c) => (
-                  <Picker.Item key={c.id} label={c.name} value={c.id} />
-                ))}
-              </Picker>
-            </View>
+            <Field label="Current Class">
+              <View style={styles.pickerWrapper}>
+                <Picker
+                  selectedValue={form.class_id}
+                  onValueChange={(v) => setField('class_id', v)}
+                  style={styles.picker}
+                >
+                  <Picker.Item label="Select current class" value="" color="#94a3b8" />
+                  {classes.map((c) => (
+                    <Picker.Item key={c.id} label={c.name} value={c.id} />
+                  ))}
+                </Picker>
+              </View>
+            </Field>
 
             <Text style={styles.sectionTitle}>Parent</Text>
-            <TextInput style={styles.input} placeholder="Parent Name" placeholderTextColor="#94a3b8" value={form.parent_name} onChangeText={(v) => setField('parent_name', v)} />
-            <TextInput style={styles.input} placeholder="Parent Phone" placeholderTextColor="#94a3b8" value={form.parent_phone} onChangeText={(v) => setField('parent_phone', v)} keyboardType="phone-pad" />
-            <TextInput style={styles.input} placeholder="Parent Email" placeholderTextColor="#94a3b8" value={form.parent_email} onChangeText={(v) => setField('parent_email', v)} keyboardType="email-address" />
-            <TextInput style={styles.input} placeholder="Parent Address" placeholderTextColor="#94a3b8" value={form.parent_address} onChangeText={(v) => setField('parent_address', v)} />
+            <Field label="Parent Name">
+              <TextInput style={styles.input} placeholder="Parent Name" placeholderTextColor="#94a3b8" value={form.parent_name} onChangeText={(v) => setField('parent_name', v)} />
+            </Field>
+            <Field label="Parent Phone">
+              <TextInput style={styles.input} placeholder="Parent Phone" placeholderTextColor="#94a3b8" value={form.parent_phone} onChangeText={(v) => setField('parent_phone', v)} keyboardType="phone-pad" />
+            </Field>
+            <Field label="Parent Email">
+              <TextInput style={styles.input} placeholder="Parent Email" placeholderTextColor="#94a3b8" value={form.parent_email} onChangeText={(v) => setField('parent_email', v)} keyboardType="email-address" />
+            </Field>
+            <Field label="Parent Address">
+              <TextInput style={styles.input} placeholder="Parent Address" placeholderTextColor="#94a3b8" value={form.parent_address} onChangeText={(v) => setField('parent_address', v)} />
+            </Field>
 
             <Text style={styles.sectionTitle}>Guardian</Text>
-            <TextInput style={styles.input} placeholder="Guardian Name" placeholderTextColor="#94a3b8" value={form.guardian_name} onChangeText={(v) => setField('guardian_name', v)} />
-            <TextInput style={styles.input} placeholder="Guardian Phone" placeholderTextColor="#94a3b8" value={form.guardian_phone} onChangeText={(v) => setField('guardian_phone', v)} keyboardType="phone-pad" />
-            <TextInput style={styles.input} placeholder="Guardian Email" placeholderTextColor="#94a3b8" value={form.guardian_email} onChangeText={(v) => setField('guardian_email', v)} keyboardType="email-address" />
-            <TextInput style={styles.input} placeholder="Guardian Address" placeholderTextColor="#94a3b8" value={form.guardian_address} onChangeText={(v) => setField('guardian_address', v)} />
+            <Field label="Guardian Name">
+              <TextInput style={styles.input} placeholder="Guardian Name" placeholderTextColor="#94a3b8" value={form.guardian_name} onChangeText={(v) => setField('guardian_name', v)} />
+            </Field>
+            <Field label="Guardian Phone">
+              <TextInput style={styles.input} placeholder="Guardian Phone" placeholderTextColor="#94a3b8" value={form.guardian_phone} onChangeText={(v) => setField('guardian_phone', v)} keyboardType="phone-pad" />
+            </Field>
+            <Field label="Guardian Email">
+              <TextInput style={styles.input} placeholder="Guardian Email" placeholderTextColor="#94a3b8" value={form.guardian_email} onChangeText={(v) => setField('guardian_email', v)} keyboardType="email-address" />
+            </Field>
+            <Field label="Guardian Address">
+              <TextInput style={styles.input} placeholder="Guardian Address" placeholderTextColor="#94a3b8" value={form.guardian_address} onChangeText={(v) => setField('guardian_address', v)} />
+            </Field>
 
             <Text style={styles.sectionTitle}>Sibling</Text>
-            <TextInput style={styles.input} placeholder="Sibling Name" placeholderTextColor="#94a3b8" value={form.sibling_name} onChangeText={(v) => setField('sibling_name', v)} />
-            <View style={styles.pickerWrapper}>
-              <Picker
-                selectedValue={form.sibling_class_id}
-                onValueChange={(v) => setField('sibling_class_id', v)}
-                style={styles.picker}
-              >
-                <Picker.Item label="Sibling Class" value="" color="#94a3b8" />
-                {classes.map((c) => (
-                  <Picker.Item key={c.id} label={c.name} value={c.id} />
-                ))}
-              </Picker>
-            </View>
-            <View style={styles.pickerWrapper}>
-              <Picker
-                selectedValue={form.sibling_sex}
-                onValueChange={(v) => setField('sibling_sex', v)}
-                style={styles.picker}
-              >
-                <Picker.Item label="Sibling Sex" value="" color="#94a3b8" />
-                <Picker.Item label="Male" value="Male" />
-                <Picker.Item label="Female" value="Female" />
-              </Picker>
-            </View>
+            <Field label="Sibling Name">
+              <TextInput style={styles.input} placeholder="Sibling Name" placeholderTextColor="#94a3b8" value={form.sibling_name} onChangeText={(v) => setField('sibling_name', v)} />
+            </Field>
+            <Field label="Sibling Class">
+              <View style={styles.pickerWrapper}>
+                <Picker
+                  selectedValue={form.sibling_class_id}
+                  onValueChange={(v) => setField('sibling_class_id', v)}
+                  style={styles.picker}
+                >
+                  <Picker.Item label="Sibling Class" value="" color="#94a3b8" />
+                  {classes.map((c) => (
+                    <Picker.Item key={c.id} label={c.name} value={c.id} />
+                  ))}
+                </Picker>
+              </View>
+            </Field>
+            <Field label="Sibling Sex">
+              <View style={styles.pickerWrapper}>
+                <Picker
+                  selectedValue={form.sibling_sex}
+                  onValueChange={(v) => setField('sibling_sex', v)}
+                  style={styles.picker}
+                >
+                  <Picker.Item label="Sibling Sex" value="" color="#94a3b8" />
+                  <Picker.Item label="Male" value="Male" />
+                  <Picker.Item label="Female" value="Female" />
+                </Picker>
+              </View>
+            </Field>
 
             <View style={styles.modalActions}>
               <TouchableOpacity
