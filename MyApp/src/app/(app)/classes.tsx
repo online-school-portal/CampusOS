@@ -7,10 +7,10 @@ import {
   TouchableOpacity,
   FlatList,
   Alert,
-  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 export default function ClassesScreen() {
   const [loading, setLoading] = useState(true);
@@ -80,7 +80,9 @@ export default function ClassesScreen() {
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
+          setSaving(true);
           const { error } = await supabase.from('classes').delete().eq('id', item.id);
+          setSaving(false);
           if (error) {
             Alert.alert('Error', error.message);
           } else {
@@ -92,15 +94,14 @@ export default function ClassesScreen() {
   };
 
   if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#1e40af" />
-      </View>
-    );
+    return <LoadingSpinner message="Loading classes..." fullScreen={false} />;
   }
 
   return (
     <View style={styles.container}>
+      {/* Full-screen spinner while saving */}
+      <LoadingSpinner visible={saving} message="Saving..." />
+
       <Text style={styles.header}>Classes</Text>
 
       <Text style={styles.count}>
@@ -123,11 +124,7 @@ export default function ClassesScreen() {
         onPress={handleSave}
         disabled={saving}
       >
-        {saving ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.saveText}>Save Classes</Text>
-        )}
+        <Text style={styles.saveText}>Save Classes</Text>
       </TouchableOpacity>
 
       <Text style={[styles.label, { marginTop: 24 }]}>Registered Classes</Text>
@@ -157,12 +154,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f1f5f9',
     padding: 20,
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f1f5f9',
   },
   header: {
     fontSize: 24,

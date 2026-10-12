@@ -6,7 +6,6 @@ import {
   FlatList,
   TouchableOpacity,
   Image,
-  ActivityIndicator,
   Alert,
   TextInput,
   RefreshControl,
@@ -14,10 +13,12 @@ import {
 import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 export default function ManageStudentsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [students, setStudents] = useState<any[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
   const [selectedClass, setSelectedClass] = useState('all');
@@ -64,7 +65,10 @@ export default function ManageStudentsScreen() {
   }, []);
 
   useEffect(() => {
-    loadStudents();
+    // Only show full spinner on first load; filter changes just refresh list
+    if (!loading) {
+      loadStudents();
+    }
   }, [selectedClass, loadStudents]);
 
   const onRefresh = async () => {
@@ -89,10 +93,12 @@ export default function ManageStudentsScreen() {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
+            setDeleting(true);
             const { error } = await supabase
               .from('students')
               .delete()
               .eq('id', student.id);
+            setDeleting(false);
 
             if (error) {
               Alert.alert('Error', error.message);
@@ -155,15 +161,13 @@ export default function ManageStudentsScreen() {
   );
 
   if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#1e40af" />
-      </View>
-    );
+    return <LoadingSpinner message="Loading students..." fullScreen={false} />;
   }
 
   return (
     <View style={styles.container}>
+      <LoadingSpinner visible={deleting} message="Deleting..." />
+
       <Text style={styles.header}>Manage Students</Text>
 
       <TextInput
@@ -209,12 +213,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f1f5f9',
     padding: 20,
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f1f5f9',
   },
   header: {
     fontSize: 24,

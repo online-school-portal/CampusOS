@@ -4,12 +4,12 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ActivityIndicator,
   Alert,
   ScrollView,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { supabase } from '@/lib/supabase';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 export default function TransferStudentsScreen() {
   const [loading, setLoading] = useState(true);
@@ -110,15 +110,13 @@ export default function TransferStudentsScreen() {
   };
 
   if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#1e40af" />
-      </View>
-    );
+    return <LoadingSpinner message="Loading classes..." fullScreen={false} />;
   }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <LoadingSpinner visible={transferring} message="Transferring student..." />
+
       <Text style={styles.header}>Transfer Students</Text>
 
       <Text style={styles.label}>Current Class</Text>
@@ -179,11 +177,7 @@ export default function TransferStudentsScreen() {
         onPress={handleTransfer}
         disabled={transferring}
       >
-        {transferring ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Transfer Student</Text>
-        )}
+        <Text style={styles.buttonText}>Transfer Student</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -192,12 +186,6 @@ export default function TransferStudentsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f1f5f9' },
   content: { padding: 20, paddingBottom: 60 },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f1f5f9',
-  },
   header: {
     fontSize: 24,
     fontFamily: 'SpaceGrotesk_700Bold',

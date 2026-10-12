@@ -7,21 +7,21 @@ import {
   StyleSheet,
   TouchableOpacity,
   Alert,
-  ActivityIndicator,
   Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Picker } from '@react-native-picker/picker';
 import { supabase } from '@/lib/supabase';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 export default function RegisterStudentScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [loadingClasses, setLoadingClasses] = useState(true);
   const [photo, setPhoto] = useState<string | null>(null);
   const [classes, setClasses] = useState<any[]>([]);
 
-  // Form fields
   const [fullName, setFullName] = useState('');
   const [studentId, setStudentId] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
@@ -50,6 +50,7 @@ export default function RegisterStudentScreen() {
   }, []);
 
   const loadClasses = async () => {
+    setLoadingClasses(true);
     try {
       const { data, error } = await supabase
         .from('classes')
@@ -60,6 +61,8 @@ export default function RegisterStudentScreen() {
       setClasses(data || []);
     } catch (err) {
       console.log('Failed to load classes:', err);
+    } finally {
+      setLoadingClasses(false);
     }
   };
 
@@ -147,8 +150,14 @@ export default function RegisterStudentScreen() {
     }
   };
 
+  if (loadingClasses) {
+    return <LoadingSpinner message="Loading classes..." fullScreen={false} />;
+  }
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <LoadingSpinner visible={loading} message="Registering student..." />
+
       <Text style={styles.header}>Register Student</Text>
 
       <TouchableOpacity style={styles.photoBox} onPress={pickImage}>
@@ -242,7 +251,7 @@ export default function RegisterStudentScreen() {
         onPress={handleRegister}
         disabled={loading}
       >
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Register Student</Text>}
+        <Text style={styles.buttonText}>Register Student</Text>
       </TouchableOpacity>
     </ScrollView>
   );
