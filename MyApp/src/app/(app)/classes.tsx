@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import { showToast, getFriendlyError } from '@/utils/toast';
 
 export default function ClassesScreen() {
   const [loading, setLoading] = useState(true);
@@ -34,7 +35,7 @@ export default function ClassesScreen() {
       setClasses(data || []);
     } catch (err: any) {
       console.log('Load classes error:', err);
-      Alert.alert('Error', err.message || 'Failed to load classes');
+      showToast(getFriendlyError(err), 'error');
     } finally {
       setLoading(false);
     }
@@ -42,7 +43,7 @@ export default function ClassesScreen() {
 
   const handleSave = async () => {
     if (!text.trim()) {
-      Alert.alert('Error', 'Please enter at least one class name');
+      showToast('Please enter at least one class name', 'error');
       return;
     }
 
@@ -63,11 +64,11 @@ export default function ClassesScreen() {
       const { error } = await supabase.from('classes').insert(rows);
       if (error) throw error;
 
-      setText(''); // reset input after save
+      setText('');
       await loadClasses();
-      Alert.alert('Success', `${names.length} class(es) added`);
+      showToast(`${names.length} class(es) added`, 'success');
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to save classes');
+      showToast(getFriendlyError(err), 'error');
     } finally {
       setSaving(false);
     }
@@ -84,9 +85,10 @@ export default function ClassesScreen() {
           const { error } = await supabase.from('classes').delete().eq('id', item.id);
           setSaving(false);
           if (error) {
-            Alert.alert('Error', error.message);
+            showToast(getFriendlyError(error), 'error');
           } else {
             setClasses((prev) => prev.filter((c) => c.id !== item.id));
+            showToast('Class deleted', 'success');
           }
         },
       },

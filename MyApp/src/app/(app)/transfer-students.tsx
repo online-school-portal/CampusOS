@@ -4,13 +4,13 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   ScrollView,
   Image,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { supabase } from '@/lib/supabase';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import { showToast, getFriendlyError } from '@/utils/toast';
 
 export default function TransferStudentsScreen() {
   const [loading, setLoading] = useState(true);
@@ -44,7 +44,7 @@ export default function TransferStudentsScreen() {
       if (error) throw error;
       setClasses(data || []);
     } catch (err) {
-      console.log(err);
+      showToast(getFriendlyError(err), 'error');
     } finally {
       setLoading(false);
     }
@@ -52,7 +52,10 @@ export default function TransferStudentsScreen() {
 
   const loadStudentsByClass = async (classId: string) => {
     try {
-      const { data: schoolId } = await supabase.rpc('current_user_school_id');
+      const { data: schoolId, error: schoolErr } = await supabase.rpc(
+        'current_user_school_id'
+      );
+      if (schoolErr) throw schoolErr;
 
       const { data, error } = await supabase
         .from('students')
@@ -66,6 +69,7 @@ export default function TransferStudentsScreen() {
       setSelectedStudent('');
     } catch (err) {
       console.log('Load students error:', err);
+      showToast(getFriendlyError(err), 'error');
       setStudents([]);
     }
   };
@@ -85,12 +89,12 @@ export default function TransferStudentsScreen() {
 
   const handleTransfer = async () => {
     if (!selectedStudent || !newClass) {
-      Alert.alert('Error', 'Please select a student and a new class');
+      showToast('Please select a student and a new class', 'error');
       return;
     }
 
     if (selectedClass === newClass) {
-      Alert.alert('Error', 'New class must be different from current class');
+      showToast('New class must be different from current class', 'error');
       return;
     }
 
@@ -108,11 +112,10 @@ export default function TransferStudentsScreen() {
       if (error) throw error;
 
       const studentName = selectedStudentData?.full_name || 'Student';
-
-      Alert.alert('Success', `${studentName} transferred successfully`);
+      showToast(`${studentName} transferred successfully`, 'success');
       resetForm();
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Transfer failed');
+      showToast(getFriendlyError(err), 'error');
     } finally {
       setTransferring(false);
     }

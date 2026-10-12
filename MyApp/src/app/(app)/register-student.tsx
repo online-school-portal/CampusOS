@@ -6,7 +6,6 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   Image,
   Platform,
 } from 'react-native';
@@ -16,10 +15,31 @@ import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import { showToast, getFriendlyError } from '@/utils/toast';
 
 let DateTimePicker: any = null;
 if (Platform.OS !== 'web') {
   DateTimePicker = require('@react-native-community/datetimepicker').default;
+}
+
+async function uploadStudentPhoto(uri: string, studentId: string) {
+  const fileName = `${studentId.replace(/[^a-zA-Z0-9_-]/g, '_')}_${Date.now()}.jpg`;
+  const response = await fetch(uri);
+  const blob = await response.blob();
+  const contentType =
+    blob.type && blob.type.startsWith('image/') ? blob.type : 'image/jpeg';
+
+  const { data, error } = await supabase.storage
+    .from('student-photos')
+    .upload(fileName, blob, { contentType, upsert: true });
+
+  if (error) throw error;
+
+  const { data: publicUrl } = supabase.storage
+    .from('student-photos')
+    .getPublicUrl(data.path);
+
+  return { imageUrl: publicUrl.publicUrl, imagePath: data.path };
 }
 
 export default function RegisterStudentScreen() {
@@ -76,7 +96,7 @@ export default function RegisterStudentScreen() {
       if (error) throw error;
       setClasses(data || []);
     } catch (err) {
-      console.log(err);
+      showToast(getFriendlyError(err), 'error');
     } finally {
       setLoadingClasses(false);
     }
@@ -109,32 +129,40 @@ export default function RegisterStudentScreen() {
   };
 
   const pickFromGallery = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Please allow photo library access');
-      return;
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        showToast('Photo library permission is required', 'error');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
+      if (!result.canceled) setPhoto(result.assets[0].uri);
+    } catch (err) {
+      showToast(getFriendlyError(err), 'error');
     }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7,
-    });
-    if (!result.canceled) setPhoto(result.assets[0].uri);
   };
 
   const takePhoto = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Please allow camera access');
-      return;
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        showToast('Camera permission is required', 'error');
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
+      if (!result.canceled) setPhoto(result.assets[0].uri);
+    } catch (err) {
+      showToast(getFriendlyError(err), 'error');
     }
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7,
-    });
-    if (!result.canceled) setPhoto(result.assets[0].uri);
   };
 
   const onNativeDateChange = (_event: any, selectedDate?: Date) => {
@@ -149,7 +177,7 @@ export default function RegisterStudentScreen() {
 
   const handleRegister = async () => {
     if (!fullName.trim() || !studentId.trim()) {
-      Alert.alert('Error', 'Full Name and Student ID are required');
+      showToast('Full Name and Student ID are required', 'error');
       return;
     }
 
@@ -163,19 +191,12 @@ export default function RegisterStudentScreen() {
       let imagePath: string | null = null;
 
       if (photo) {
-        const ext = photo.split('.').pop() || 'jpg';
-        const fileName = `${studentId}_${Date.now()}.${ext}`;
-        const response = await fetch(photo);
-        const blob = await response.blob();
-        const { error: uploadError } = await supabase.storage
-          .from('student-photos')
-          .upload(fileName, blob);
-        if (!uploadError) {
-          const { data: publicUrl } = supabase.storage
-            .from('student-photos')
-            .getPublicUrl(fileName);
-          imageUrl = publicUrl.publicUrl;
-          imagePath = fileName;
+        try {
+          const uploaded = await uploadStudentPhoto(photo, studentId);
+          imageUrl = uploaded.imageUrl;
+          imagePath = uploaded.imagePath;
+        } catch (uploadErr) {
+          showToast(getFriendlyError(uploadErr), 'error');
         }
       }
 
@@ -212,10 +233,10 @@ export default function RegisterStudentScreen() {
       if (error) throw error;
 
       resetForm();
-      Alert.alert('Success', 'Student registered successfully');
+      showToast('Student registered successfully', 'success');
     } catch (err: any) {
       console.log(err);
-      Alert.alert('Error', err.message || 'Failed to register student');
+      showToast(getFriendlyError(err), 'error');
     } finally {
       setLoading(false);
     }
@@ -237,7 +258,7 @@ export default function RegisterStudentScreen() {
         <View style={styles.photoWrapper}>
           <TouchableOpacity style={styles.photoBox} onPress={pickFromGallery}>
             {photo ? (
-              <Image source={{ uri: photo }} style={styles.photo} />
+              <Image source={{ uri: photo }} style={styles.photo} resizeMode="cover" />
             ) : (
               <View style={styles.photoPlaceholder}>
                 <Ionicons name="image-outline" size={28} color="#94a3b8" />
@@ -252,23 +273,9 @@ export default function RegisterStudentScreen() {
 
         <Text style={styles.sectionTitle}>Student Details</Text>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Full Name *"
-          placeholderTextColor="#94a3b8"
-          value={fullName}
-          onChangeText={setFullName}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Student ID *"
-          placeholderTextColor="#94a3b8"
-          value={studentId}
-          onChangeText={setStudentId}
-          autoCapitalize="characters"
-        />
+        <TextInput style={styles.input} placeholder="Full Name *" placeholderTextColor="#94a3b8" value={fullName} onChangeText={setFullName} />
+        <TextInput style={styles.input} placeholder="Student ID *" placeholderTextColor="#94a3b8" value={studentId} onChangeText={setStudentId} autoCapitalize="characters" />
 
-        {/* DOB looks like Select Sex — same picker-style box with placeholder inside */}
         {Platform.OS === 'web' ? (
           <View style={styles.pickerWrapper}>
             {/* @ts-ignore */}
@@ -333,19 +340,20 @@ export default function RegisterStudentScreen() {
         <TextInput style={styles.input} placeholder="Passkey (optional)" placeholderTextColor="#94a3b8" value={password} onChangeText={setPassword} secureTextEntry />
 
         <Text style={styles.sectionTitle}>Classes</Text>
-
+        <Text style={styles.fieldLabel}>Class Admitted Into</Text>
         <View style={styles.pickerWrapper}>
           <Picker selectedValue={admissionClassId} onValueChange={setAdmissionClassId} style={styles.picker}>
-            <Picker.Item label="Class Admitted Into" value="" color="#94a3b8" />
+            <Picker.Item label="Select admission class" value="" color="#94a3b8" />
             {classes.map((cls) => (
               <Picker.Item key={cls.id} label={cls.name} value={cls.id} />
             ))}
           </Picker>
         </View>
 
+        <Text style={styles.fieldLabel}>Current Class</Text>
         <View style={styles.pickerWrapper}>
           <Picker selectedValue={currentClassId} onValueChange={setCurrentClassId} style={styles.picker}>
-            <Picker.Item label="Current Class" value="" color="#94a3b8" />
+            <Picker.Item label="Select current class" value="" color="#94a3b8" />
             {classes.map((cls) => (
               <Picker.Item key={cls.id} label={cls.name} value={cls.id} />
             ))}
@@ -451,6 +459,12 @@ const styles = StyleSheet.create({
     color: '#1e40af',
     marginTop: 20,
     marginBottom: 12,
+  },
+  fieldLabel: {
+    fontSize: 13,
+    fontFamily: 'PlusJakartaSans_600SemiBold',
+    color: '#64748b',
+    marginBottom: 6,
   },
   input: {
     backgroundColor: '#ffffff',

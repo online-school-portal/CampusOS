@@ -12,6 +12,7 @@ import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import { showToast, getFriendlyError } from '@/utils/toast';
 
 export default function SubjectsScreen() {
   const [loading, setLoading] = useState(true);
@@ -43,7 +44,7 @@ export default function SubjectsScreen() {
       if (error) throw error;
       setClasses(data || []);
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to load classes');
+      showToast(getFriendlyError(err), 'error');
     } finally {
       setLoading(false);
     }
@@ -60,17 +61,18 @@ export default function SubjectsScreen() {
       setSubjects(data || []);
     } catch (err) {
       console.log(err);
+      showToast(getFriendlyError(err), 'error');
       setSubjects([]);
     }
   };
 
   const handleSave = async () => {
     if (!selectedClass) {
-      Alert.alert('Error', 'Please select a class first');
+      showToast('Please select a class first', 'error');
       return;
     }
     if (!text.trim()) {
-      Alert.alert('Error', 'Please enter at least one subject');
+      showToast('Please enter at least one subject', 'error');
       return;
     }
 
@@ -97,9 +99,9 @@ export default function SubjectsScreen() {
 
       setText('');
       await loadSubjects(selectedClass);
-      Alert.alert('Success', `${names.length} subject(s) added`);
+      showToast(`${names.length} subject(s) added`, 'success');
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to save subjects');
+      showToast(getFriendlyError(err), 'error');
     } finally {
       setSaving(false);
     }
@@ -116,9 +118,10 @@ export default function SubjectsScreen() {
           const { error } = await supabase.from('subjects').delete().eq('id', item.id);
           setSaving(false);
           if (error) {
-            Alert.alert('Error', error.message);
+            showToast(getFriendlyError(error), 'error');
           } else {
             setSubjects((prev) => prev.filter((s) => s.id !== item.id));
+            showToast('Subject deleted', 'success');
           }
         },
       },

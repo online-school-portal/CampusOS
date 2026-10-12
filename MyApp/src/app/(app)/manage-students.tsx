@@ -6,7 +6,6 @@ import {
   FlatList,
   TouchableOpacity,
   Image,
-  Alert,
   TextInput,
   RefreshControl,
   Modal,
@@ -18,6 +17,36 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '@/lib/supabase';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import { showToast, getFriendlyError } from '@/utils/toast';
+
+/** Upload image to Supabase storage — works on web + native */
+async function uploadStudentPhoto(uri: string, studentId: string) {
+  const fileName = `${studentId.replace(/[^a-zA-Z0-9_-]/g, '_')}_${Date.now()}.jpg`;
+
+  const response = await fetch(uri);
+  const blob = await response.blob();
+
+  const contentType =
+    blob.type && blob.type.startsWith('image/') ? blob.type : 'image/jpeg';
+
+  const { data, error } = await supabase.storage
+    .from('student-photos')
+    .upload(fileName, blob, {
+      contentType,
+      upsert: true,
+    });
+
+  if (error) throw error;
+
+  const { data: publicUrl } = supabase.storage
+    .from('student-photos')
+    .getPublicUrl(data.path);
+
+  return {
+    imageUrl: publicUrl.publicUrl,
+    imagePath: data.path,
+  };
+}
 
 export default function ManageStudentsScreen() {
   const [loading, setLoading] = useState(true);
@@ -34,16 +63,23 @@ export default function ManageStudentsScreen() {
   const [form, setForm] = useState<any>({});
 
   const loadClasses = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('classes')
       .select('id, name')
       .order('name');
+    if (error) {
+      showToast(getFriendlyError(error), 'error');
+      return;
+    }
     setClasses(data || []);
   };
 
   const loadStudents = useCallback(async () => {
     try {
-      const { data: schoolId } = await supabase.rpc('current_user_school_id');
+      const { data: schoolId, error: schoolErr } = await supabase.rpc(
+        'current_user_school_id'
+      );
+      if (schoolErr) throw schoolErr;
 
       let query = supabase
         .from('students')
@@ -60,6 +96,7 @@ export default function ManageStudentsScreen() {
       setStudents(data || []);
     } catch (err) {
       console.log('Load students error:', err);
+      showToast(getFriendlyError(err), 'error');
     }
   }, [selectedClass]);
 
@@ -72,7 +109,6 @@ export default function ManageStudentsScreen() {
     };
     init();
 
-    // Realtime: auto-refresh when students or classes change
     const studentsChannel = supabase
       .channel('manage-students-rt')
       .on(
@@ -145,32 +181,40 @@ export default function ManageStudentsScreen() {
   };
 
   const pickEditPhoto = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7,
-    });
-    if (!result.canceled) setEditPhoto(result.assets[0].uri);
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
+      if (!result.canceled) setEditPhoto(result.assets[0].uri);
+    } catch (err) {
+      showToast(getFriendlyError(err), 'error');
+    }
   };
 
   const takeEditPhoto = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Allow camera access');
-      return;
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        showToast('Camera permission is required', 'error');
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
+      if (!result.canceled) setEditPhoto(result.assets[0].uri);
+    } catch (err) {
+      showToast(getFriendlyError(err), 'error');
     }
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7,
-    });
-    if (!result.canceled) setEditPhoto(result.assets[0].uri);
   };
 
   const saveEdit = async () => {
     if (!form.full_name?.trim() || !form.student_id?.trim()) {
-      Alert.alert('Error', 'Full Name and Student ID are required');
+      showToast('Full Name and Student ID are required', 'error');
       return;
     }
 
@@ -179,22 +223,23 @@ export default function ManageStudentsScreen() {
       let imageUrl = editStudent.image_url;
       let imagePath = editStudent.image_path;
 
-      if (editPhoto && editPhoto !== editStudent.image_url) {
-        const ext = editPhoto.split('.').pop() || 'jpg';
-        const fileName = `${form.student_id}_${Date.now()}.${ext}`;
-        const response = await fetch(editPhoto);
-        const blob = await response.blob();
-
-        const { error: uploadError } = await supabase.storage
-          .from('student-photos')
-          .upload(fileName, blob);
-
-        if (!uploadError) {
-          const { data: publicUrl } = supabase.storage
-            .from('student-photos')
-            .getPublicUrl(fileName);
-          imageUrl = publicUrl.publicUrl;
-          imagePath = fileName;
+      if (
+        editPhoto &&
+        editPhoto !== editStudent.image_url &&
+        !editPhoto.includes('supabase.co')
+      ) {
+        try {
+          const uploaded = await uploadStudentPhoto(
+            editPhoto,
+            form.student_id || editStudent.student_id || 'student'
+          );
+          imageUrl = uploaded.imageUrl;
+          imagePath = uploaded.imagePath;
+          showToast('Photo uploaded', 'success');
+        } catch (uploadErr: any) {
+          console.log('Upload error full:', uploadErr);
+          showToast(getFriendlyError(uploadErr), 'error');
+          // Continue saving other fields without new photo
         }
       }
 
@@ -241,15 +286,18 @@ export default function ManageStudentsScreen() {
 
       setEditVisible(false);
       await loadStudents();
-      Alert.alert('Success', 'Student updated');
+      showToast('Student updated successfully', 'success');
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Update failed');
+      console.log('Save error full:', err);
+      showToast(getFriendlyError(err), 'error');
     } finally {
       setBusy(false);
     }
   };
 
   const handleDelete = (student: any) => {
+    // Confirm still uses Alert so user must acknowledge
+    const { Alert } = require('react-native');
     Alert.alert(
       'Delete Student',
       `Delete ${student.full_name}? This cannot be undone.`,
@@ -260,16 +308,25 @@ export default function ManageStudentsScreen() {
           style: 'destructive',
           onPress: async () => {
             setBusy(true);
-            const { error } = await supabase
-              .from('students')
-              .delete()
-              .eq('id', student.id);
-            setBusy(false);
-            if (error) {
-              Alert.alert('Error', error.message);
-            } else {
+            try {
+              const { error } = await supabase
+                .from('students')
+                .delete()
+                .eq('id', student.id);
+
+              if (error) {
+                console.log('Delete error full:', error);
+                showToast(getFriendlyError(error), 'error');
+                return;
+              }
+
               setStudents((prev) => prev.filter((s) => s.id !== student.id));
-              Alert.alert('Success', 'Student deleted');
+              showToast('Student deleted', 'success');
+            } catch (err: any) {
+              console.log('Delete catch:', err);
+              showToast(getFriendlyError(err), 'error');
+            } finally {
+              setBusy(false);
             }
           },
         },
@@ -293,7 +350,11 @@ export default function ManageStudentsScreen() {
     <View style={styles.card}>
       <View style={styles.cardHeader}>
         {item.image_url ? (
-          <Image source={{ uri: item.image_url }} style={styles.avatar} />
+          <Image
+            source={{ uri: item.image_url }}
+            style={styles.avatar}
+            resizeMode="cover"
+          />
         ) : (
           <View style={[styles.avatar, styles.avatarPlaceholder]}>
             <Text style={styles.avatarLetter}>
@@ -385,7 +446,6 @@ export default function ManageStudentsScreen() {
         }
       />
 
-      {/* Edit Modal */}
       <Modal
         visible={editVisible}
         animationType="slide"
@@ -404,7 +464,11 @@ export default function ManageStudentsScreen() {
             <View style={styles.photoWrapper}>
               <TouchableOpacity style={styles.photoBox} onPress={pickEditPhoto}>
                 {editPhoto ? (
-                  <Image source={{ uri: editPhoto }} style={styles.photo} />
+                  <Image
+                    source={{ uri: editPhoto }}
+                    style={styles.photo}
+                    resizeMode="cover"
+                  />
                 ) : (
                   <View style={styles.photoPlaceholder}>
                     <Ionicons name="image-outline" size={24} color="#94a3b8" />
@@ -417,8 +481,20 @@ export default function ManageStudentsScreen() {
               </TouchableOpacity>
             </View>
 
-            <TextInput style={styles.input} placeholder="Student ID" placeholderTextColor="#94a3b8" value={form.student_id} onChangeText={(v) => setField('student_id', v)} />
-            <TextInput style={styles.input} placeholder="Full Name" placeholderTextColor="#94a3b8" value={form.full_name} onChangeText={(v) => setField('full_name', v)} />
+            <TextInput
+              style={styles.input}
+              placeholder="Student ID"
+              placeholderTextColor="#94a3b8"
+              value={form.student_id}
+              onChangeText={(v) => setField('student_id', v)}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Full Name"
+              placeholderTextColor="#94a3b8"
+              value={form.full_name}
+              onChangeText={(v) => setField('full_name', v)}
+            />
 
             <Text style={styles.fieldLabel}>Date of Birth</Text>
             {Platform.OS === 'web' ? (
@@ -448,7 +524,11 @@ export default function ManageStudentsScreen() {
             )}
 
             <View style={styles.pickerWrapper}>
-              <Picker selectedValue={form.sex} onValueChange={(v) => setField('sex', v)} style={styles.picker}>
+              <Picker
+                selectedValue={form.sex}
+                onValueChange={(v) => setField('sex', v)}
+                style={styles.picker}
+              >
                 <Picker.Item label="Select Sex" value="" color="#94a3b8" />
                 <Picker.Item label="Male" value="Male" />
                 <Picker.Item label="Female" value="Female" />
@@ -461,17 +541,29 @@ export default function ManageStudentsScreen() {
             <TextInput style={styles.input} placeholder="Student Address" placeholderTextColor="#94a3b8" value={form.student_address} onChangeText={(v) => setField('student_address', v)} />
 
             <Text style={styles.sectionTitle}>Classes</Text>
+
+            <Text style={styles.fieldLabel}>Class Admitted Into</Text>
             <View style={styles.pickerWrapper}>
-              <Picker selectedValue={form.admission_class_id} onValueChange={(v) => setField('admission_class_id', v)} style={styles.picker}>
-                <Picker.Item label="Class Admitted Into" value="" color="#94a3b8" />
+              <Picker
+                selectedValue={form.admission_class_id}
+                onValueChange={(v) => setField('admission_class_id', v)}
+                style={styles.picker}
+              >
+                <Picker.Item label="Select admission class" value="" color="#94a3b8" />
                 {classes.map((c) => (
                   <Picker.Item key={c.id} label={c.name} value={c.id} />
                 ))}
               </Picker>
             </View>
+
+            <Text style={styles.fieldLabel}>Current Class</Text>
             <View style={styles.pickerWrapper}>
-              <Picker selectedValue={form.class_id} onValueChange={(v) => setField('class_id', v)} style={styles.picker}>
-                <Picker.Item label="Current Class" value="" color="#94a3b8" />
+              <Picker
+                selectedValue={form.class_id}
+                onValueChange={(v) => setField('class_id', v)}
+                style={styles.picker}
+              >
+                <Picker.Item label="Select current class" value="" color="#94a3b8" />
                 {classes.map((c) => (
                   <Picker.Item key={c.id} label={c.name} value={c.id} />
                 ))}
@@ -493,7 +585,11 @@ export default function ManageStudentsScreen() {
             <Text style={styles.sectionTitle}>Sibling</Text>
             <TextInput style={styles.input} placeholder="Sibling Name" placeholderTextColor="#94a3b8" value={form.sibling_name} onChangeText={(v) => setField('sibling_name', v)} />
             <View style={styles.pickerWrapper}>
-              <Picker selectedValue={form.sibling_class_id} onValueChange={(v) => setField('sibling_class_id', v)} style={styles.picker}>
+              <Picker
+                selectedValue={form.sibling_class_id}
+                onValueChange={(v) => setField('sibling_class_id', v)}
+                style={styles.picker}
+              >
                 <Picker.Item label="Sibling Class" value="" color="#94a3b8" />
                 {classes.map((c) => (
                   <Picker.Item key={c.id} label={c.name} value={c.id} />
@@ -501,7 +597,11 @@ export default function ManageStudentsScreen() {
               </Picker>
             </View>
             <View style={styles.pickerWrapper}>
-              <Picker selectedValue={form.sibling_sex} onValueChange={(v) => setField('sibling_sex', v)} style={styles.picker}>
+              <Picker
+                selectedValue={form.sibling_sex}
+                onValueChange={(v) => setField('sibling_sex', v)}
+                style={styles.picker}
+              >
                 <Picker.Item label="Sibling Sex" value="" color="#94a3b8" />
                 <Picker.Item label="Male" value="Male" />
                 <Picker.Item label="Female" value="Female" />
@@ -509,7 +609,10 @@ export default function ManageStudentsScreen() {
             </View>
 
             <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => setEditVisible(false)}>
+              <TouchableOpacity
+                style={styles.cancelBtn}
+                onPress={() => setEditVisible(false)}
+              >
                 <Text style={styles.cancelText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.saveBtn} onPress={saveEdit}>
