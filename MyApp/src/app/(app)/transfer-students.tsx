@@ -86,7 +86,6 @@ export default function TransferStudentsScreen() {
     setTransferring(true);
 
     try {
-      // Update both UUID FK and text label
       const { error } = await supabase
         .from('students')
         .update({
@@ -122,78 +121,88 @@ export default function TransferStudentsScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <LoadingSpinner visible={transferring} message="Transferring student..." />
+    <View style={styles.container}>
+      {transferring ? (
+        <LoadingSpinner visible={true} message="Transferring student..." />
+      ) : null}
 
-      <Text style={styles.header}>Transfer Students</Text>
+      <ScrollView contentContainerStyle={styles.content}>
+        <Text style={styles.header}>Transfer Students</Text>
 
-      <Text style={styles.label}>Current Class</Text>
-      <View style={styles.pickerWrapper}>
-        <Picker
-          selectedValue={selectedClass}
-          onValueChange={setSelectedClass}
-          style={styles.picker}
-        >
-          <Picker.Item label="Select current class" value="" color="#94a3b8" />
-          {classes.map((cls) => (
-            <Picker.Item key={cls.id} label={cls.name} value={cls.id} />
-          ))}
-        </Picker>
-      </View>
-
-      <Text style={styles.label}>Select Student</Text>
-      <View style={styles.pickerWrapper}>
-        <Picker
-          selectedValue={selectedStudent}
-          onValueChange={setSelectedStudent}
-          style={styles.picker}
-          enabled={!!selectedClass}
-        >
-          <Picker.Item label="Select student" value="" color="#94a3b8" />
-          {students.map((student) => (
-            <Picker.Item
-              key={student.id}
-              label={`${student.full_name} (${student.student_id || 'N/A'})`}
-              value={student.id}
-            />
-          ))}
-        </Picker>
-      </View>
-
-      {selectedClass && students.length === 0 && (
-        <Text style={styles.warning}>No students in this class</Text>
-      )}
-
-      <Text style={styles.label}>Transfer To (New Class)</Text>
-      <View style={styles.pickerWrapper}>
-        <Picker
-          selectedValue={newClass}
-          onValueChange={setNewClass}
-          style={styles.picker}
-        >
-          <Picker.Item label="Select new class" value="" color="#94a3b8" />
-          {classes
-            .filter((cls) => cls.id !== selectedClass)
-            .map((cls) => (
+        <Text style={styles.label}>Current Class</Text>
+        <View style={styles.pickerWrapper}>
+          <Picker
+            selectedValue={selectedClass}
+            onValueChange={setSelectedClass}
+            style={styles.picker}
+          >
+            <Picker.Item label="Select current class" value="" color="#94a3b8" />
+            {classes.map((cls) => (
               <Picker.Item key={cls.id} label={cls.name} value={cls.id} />
             ))}
-        </Picker>
-      </View>
+          </Picker>
+        </View>
 
-      <TouchableOpacity
-        style={[styles.button, transferring && { opacity: 0.7 }]}
-        onPress={handleTransfer}
-        disabled={transferring}
-      >
-        <Text style={styles.buttonText}>Transfer Student</Text>
-      </TouchableOpacity>
-    </ScrollView>
+        <Text style={styles.label}>Select Student</Text>
+        <View style={styles.pickerWrapper}>
+          <Picker
+            selectedValue={selectedStudent}
+            onValueChange={setSelectedStudent}
+            style={styles.picker}
+            enabled={!!selectedClass}
+          >
+            <Picker.Item label="Select student" value="" color="#94a3b8" />
+            {students.map((student) => (
+              <Picker.Item
+                key={student.id}
+                label={`${student.full_name} (${student.student_id || 'N/A'})`}
+                value={student.id}
+              />
+            ))}
+          </Picker>
+        </View>
+
+        {selectedClass && students.length === 0 ? (
+          <Text style={styles.warning}>No students in this class</Text>
+        ) : null}
+
+        <Text style={styles.label}>Transfer To (New Class)</Text>
+        <View style={styles.pickerWrapper}>
+          <Picker
+            selectedValue={newClass}
+            onValueChange={setNewClass}
+            style={styles.picker}
+          >
+            <Picker.Item label="Select new class" value="" color="#94a3b8" />
+            {classes
+              .filter((cls) => cls.id !== selectedClass)
+              .map((cls) => (
+                <Picker.Item key={cls.id} label={cls.name} value={cls.id} />
+              ))}
+          </Picker>
+        </View>
+
+        <TouchableOpacity
+          style={[styles.button, transferring ? { opacity: 0.7 } : null]}
+          onPress={handleTransfer}
+          disabled={transferring}
+        >
+          <Text style={styles.buttonText}>Transfer Student</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f1f5f9' },
-  content: { padding: 20, paddingBottom: 60 },
+  container: {
+    flex: 1,
+    backgroundColor: '#f1f5f9',
+  },
+  content: {
+    padding: 20,
+    paddingBottom: 60,
+  },
   header: {
     fontSize: 24,
     fontFamily: 'SpaceGrotesk_700Bold',
@@ -215,7 +224,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     overflow: 'hidden',
   },
-  picker: { height: 50 },
+  picker: {
+    height: 50,
+  },
   warning: {
     color: '#dc2626',
     fontSize: 13,

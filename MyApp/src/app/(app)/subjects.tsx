@@ -83,9 +83,12 @@ export default function SubjectsScreen() {
         .map((n) => n.trim())
         .filter(Boolean);
 
+      const className = classes.find((c) => c.id === selectedClass)?.name || null;
+
       const rows = names.map((name) => ({
         name,
         class_id: selectedClass,
+        class: className,
         school_id: schoolId,
       }));
 
@@ -128,7 +131,7 @@ export default function SubjectsScreen() {
 
   return (
     <View style={styles.container}>
-      <LoadingSpinner visible={saving} message="Saving..." />
+      {saving ? <LoadingSpinner visible={true} message="Saving..." /> : null}
 
       <Text style={styles.header}>Subjects</Text>
 
@@ -139,7 +142,7 @@ export default function SubjectsScreen() {
           onValueChange={setSelectedClass}
           style={styles.picker}
         >
-          <Picker.Item label="-- Select Class --" value="" />
+          <Picker.Item label="-- Select Class --" value="" color="#94a3b8" />
           {classes.map((cls) => (
             <Picker.Item key={cls.id} label={cls.name} value={cls.id} />
           ))}
@@ -147,7 +150,7 @@ export default function SubjectsScreen() {
       </View>
 
       {selectedClass ? (
-        <>
+        <View style={{ flex: 1 }}>
           <Text style={styles.count}>
             Subjects in view:{' '}
             <Text style={styles.countBold}>{subjects.length}</Text>
@@ -166,7 +169,7 @@ export default function SubjectsScreen() {
           />
 
           <TouchableOpacity
-            style={[styles.saveBtn, saving && { opacity: 0.7 }]}
+            style={[styles.saveBtn, saving ? { opacity: 0.7 } : null]}
             onPress={handleSave}
             disabled={saving}
           >
@@ -191,7 +194,7 @@ export default function SubjectsScreen() {
             }
             contentContainerStyle={{ paddingBottom: 40 }}
           />
-        </>
+        </View>
       ) : (
         <Text style={styles.empty}>Select a class to manage subjects</Text>
       )}
@@ -225,7 +228,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     overflow: 'hidden',
   },
-  picker: { height: 50 },
+  picker: {
+    height: 50,
+  },
   count: {
     fontSize: 14,
     color: '#64748b',
