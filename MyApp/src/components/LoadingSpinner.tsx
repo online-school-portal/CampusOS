@@ -15,16 +15,6 @@ type LoadingSpinnerProps = {
   color?: string;
 };
 
-/**
- * Reusable loading spinner for CampusOS.
- *
- * Usage:
- * 1. Full-screen overlay (blocks UI while loading):
- *    <LoadingSpinner visible={loading} message="Loading students..." />
- *
- * 2. Inline (inside a screen, non-blocking):
- *    {loading ? <LoadingSpinner fullScreen={false} /> : <YourContent />}
- */
 export default function LoadingSpinner({
   visible = true,
   message = 'Loading...',
@@ -32,9 +22,10 @@ export default function LoadingSpinner({
   size = 'large',
   color = '#1e40af',
 }: LoadingSpinnerProps) {
-  if (!visible) return null;
+  if (!visible) {
+    return null;
+  }
 
-  // Inline version (no Modal)
   if (!fullScreen) {
     return (
       <View style={styles.inline}>
@@ -44,7 +35,6 @@ export default function LoadingSpinner({
     );
   }
 
-  // Full-screen overlay
   return (
     <Modal transparent animationType="fade" visible={visible} statusBarTranslucent>
       <View style={styles.overlay}>
@@ -71,11 +61,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     minWidth: 160,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
   },
   inline: {
     flex: 1,
@@ -87,7 +72,7 @@ const styles = StyleSheet.create({
   message: {
     marginTop: 14,
     fontSize: 14,
-    fontFamily: 'PlusJakartaSans_600SemiBold',
+    fontFamily: 'PlusJakartaSans_400Regular',
     color: '#334155',
     textAlign: 'center',
   },
