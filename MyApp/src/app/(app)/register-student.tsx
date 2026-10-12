@@ -13,10 +13,10 @@ import {
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Picker } from '@react-native-picker/picker';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
-// Only import DateTimePicker on native (not web)
 let DateTimePicker: any = null;
 if (Platform.OS !== 'web') {
   DateTimePicker = require('@react-native-community/datetimepicker').default;
@@ -32,7 +32,7 @@ export default function RegisterStudentScreen() {
 
   const [fullName, setFullName] = useState('');
   const [studentId, setStudentId] = useState('');
-  const [dateOfBirth, setDateOfBirth] = useState(''); // store as YYYY-MM-DD string
+  const [dateOfBirth, setDateOfBirth] = useState('');
   const [sex, setSex] = useState('');
   const [stateOfOrigin, setStateOfOrigin] = useState('');
   const [nationality, setNationality] = useState('');
@@ -55,6 +55,20 @@ export default function RegisterStudentScreen() {
 
   useEffect(() => {
     loadClasses();
+
+    // Realtime: refresh classes when they change
+    const channel = supabase
+      .channel('register-classes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'classes' },
+        () => loadClasses()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const loadClasses = async () => {
@@ -67,7 +81,7 @@ export default function RegisterStudentScreen() {
       if (error) throw error;
       setClasses(data || []);
     } catch (err) {
-      console.log('Failed to load classes:', err);
+      console.log(err);
     } finally {
       setLoadingClasses(false);
     }
@@ -99,16 +113,33 @@ export default function RegisterStudentScreen() {
     setPhoto(null);
   };
 
-  const pickImage = async () => {
+  const pickFromGallery = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Please allow photo library access');
+      return;
+    }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.7,
     });
-    if (!result.canceled) {
-      setPhoto(result.assets[0].uri);
+    if (!result.canceled) setPhoto(result.assets[0].uri);
+  };
+
+  const takePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Please allow camera access');
+      return;
     }
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+    if (!result.canceled) setPhoto(result.assets[0].uri);
   };
 
   const onNativeDateChange = (_event: any, selectedDate?: Date) => {
@@ -118,9 +149,8 @@ export default function RegisterStudentScreen() {
     }
   };
 
-  const getClassName = (id: string) => {
-    return classes.find((c) => c.id === id)?.name || null;
-  };
+  const getClassName = (id: string) =>
+    classes.find((c) => c.id === id)?.name || null;
 
   const handleRegister = async () => {
     if (!fullName.trim() || !studentId.trim()) {
@@ -129,9 +159,9 @@ export default function RegisterStudentScreen() {
     }
 
     setLoading(true);
-
     try {
-      const { data: schoolId, error: schoolError } = await supabase.rpc('current_user_school_id');
+      const { data: schoolId, error: schoolError } =
+        await supabase.rpc('current_user_school_id');
       if (schoolError) throw schoolError;
 
       let imageUrl: string | null = null;
@@ -206,18 +236,29 @@ export default function RegisterStudentScreen() {
 
   return (
     <View style={styles.container}>
-      {loading ? <LoadingSpinner visible={true} message="Registering student..." /> : null}
+      {loading ? (
+        <LoadingSpinner visible={true} message="Registering student..." />
+      ) : null}
 
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.header}>Register Student</Text>
 
-        <TouchableOpacity style={styles.photoBox} onPress={pickImage}>
-          {photo ? (
-            <Image source={{ uri: photo }} style={styles.photo} />
-          ) : (
-            <Text style={styles.photoText}>Tap to upload photo</Text>
-          )}
-        </TouchableOpacity>
+        {/* Photo + Camera */}
+        <View style={styles.photoWrapper}>
+          <TouchableOpacity style={styles.photoBox} onPress={pickFromGallery}>
+            {photo ? (
+              <Image source={{ uri: photo }} style={styles.photo} />
+            ) : (
+              <View style={styles.photoPlaceholder}>
+                <Ionicons name="image-outline" size={28} color="#94a3b8" />
+                <Text style={styles.photoText}>PHOTO</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.cameraBtn} onPress={takePhoto}>
+            <Ionicons name="camera" size={18} color="#fff" />
+          </TouchableOpacity>
+        </View>
 
         <Text style={styles.sectionTitle}>Student Details</Text>
 
@@ -237,10 +278,11 @@ export default function RegisterStudentScreen() {
           autoCapitalize="characters"
         />
 
-        {/* Date of Birth - Web uses native HTML date input, Native uses DateTimePicker */}
+        {/* Date of Birth with clear label */}
+        <Text style={styles.fieldLabel}>Date of Birth</Text>
         {Platform.OS === 'web' ? (
           <View style={styles.input}>
-            {/* @ts-ignore - web only */}
+            {/* @ts-ignore */}
             <input
               type="date"
               value={dateOfBirth}
@@ -249,7 +291,6 @@ export default function RegisterStudentScreen() {
                 border: 'none',
                 outline: 'none',
                 fontSize: 15,
-                fontFamily: 'inherit',
                 width: '100%',
                 backgroundColor: 'transparent',
                 color: dateOfBirth ? '#0f172a' : '#94a3b8',
@@ -258,9 +299,12 @@ export default function RegisterStudentScreen() {
           </View>
         ) : (
           <>
-            <TouchableOpacity style={styles.input} onPress={() => setShowDatePicker(true)}>
+            <TouchableOpacity
+              style={styles.input}
+              onPress={() => setShowDatePicker(true)}
+            >
               <Text style={dateOfBirth ? styles.dateText : styles.placeholderText}>
-                {dateOfBirth || 'Date of Birth'}
+                {dateOfBirth || 'Tap to select date of birth'}
               </Text>
             </TouchableOpacity>
             {showDatePicker && DateTimePicker ? (
@@ -358,41 +402,49 @@ export default function RegisterStudentScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f1f5f9',
-  },
-  content: {
-    padding: 20,
-    paddingBottom: 60,
-  },
+  container: { flex: 1, backgroundColor: '#f1f5f9' },
+  content: { padding: 20, paddingBottom: 60 },
   header: {
     fontSize: 24,
     fontFamily: 'SpaceGrotesk_700Bold',
     color: '#0f172a',
     marginBottom: 24,
   },
+  photoWrapper: {
+    alignSelf: 'center',
+    marginBottom: 24,
+    position: 'relative',
+  },
   photoBox: {
     width: 120,
     height: 120,
-    borderRadius: 16,
-    backgroundColor: '#e2e8f0',
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: '#cbd5e1',
+    borderStyle: 'dashed',
+    backgroundColor: '#fff',
     justifyContent: 'center',
     alignItems: 'center',
-    alignSelf: 'center',
-    marginBottom: 24,
     overflow: 'hidden',
   },
-  photo: {
-    width: '100%',
-    height: '100%',
-  },
+  photo: { width: '100%', height: '100%' },
+  photoPlaceholder: { alignItems: 'center', gap: 4 },
   photoText: {
-    fontSize: 13,
-    color: '#94a3b8',
-    textAlign: 'center',
-    paddingHorizontal: 10,
-    fontFamily: 'PlusJakartaSans_400Regular',
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748b',
+    letterSpacing: 1,
+  },
+  cameraBtn: {
+    position: 'absolute',
+    right: -8,
+    bottom: -8,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#1e40af',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   sectionTitle: {
     fontSize: 16,
@@ -400,6 +452,12 @@ const styles = StyleSheet.create({
     color: '#1e40af',
     marginTop: 20,
     marginBottom: 12,
+  },
+  fieldLabel: {
+    fontSize: 13,
+    fontFamily: 'PlusJakartaSans_600SemiBold',
+    color: '#64748b',
+    marginBottom: 6,
   },
   input: {
     backgroundColor: '#ffffff',
@@ -430,9 +488,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     overflow: 'hidden',
   },
-  picker: {
-    height: 50,
-  },
+  picker: { height: 50 },
   warning: {
     color: '#dc2626',
     fontSize: 13,

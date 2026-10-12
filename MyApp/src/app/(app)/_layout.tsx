@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
+  Image,
 } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,24 +17,48 @@ function CustomDrawerContent(props: any) {
   const router = useRouter();
   const [role, setRole] = useState<string | null>(null);
   const [openSection, setOpenSection] = useState<string | null>(null);
+  const [schoolName, setSchoolName] = useState('CampusOS');
+  const [schoolLogo, setSchoolLogo] = useState<string | null>(null);
 
   useEffect(() => {
-    const getRole = async () => {
+    const load = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
       const userId = session.user.id;
-      const [{ data: admin }, { data: teacher }, { data: student }] = await Promise.all([
-        supabase.from('admins').select('id').eq('auth_id', userId).maybeSingle(),
-        supabase.from('teachers').select('id').eq('auth_id', userId).maybeSingle(),
-        supabase.from('students').select('id').eq('auth_id', userId).maybeSingle(),
-      ]);
+
+      // Role
+      const [{ data: admin }, { data: teacher }, { data: student }] =
+        await Promise.all([
+          supabase.from('admins').select('id').eq('auth_id', userId).maybeSingle(),
+          supabase.from('teachers').select('id').eq('auth_id', userId).maybeSingle(),
+          supabase.from('students').select('id').eq('auth_id', userId).maybeSingle(),
+        ]);
 
       if (admin) setRole('admin');
       else if (teacher) setRole('teacher');
       else if (student) setRole('student');
+
+      // School logo via RPC (same as web)
+      try {
+        const { data: logo } = await supabase.rpc('get_my_school_logo');
+        if (logo) setSchoolLogo(logo);
+      } catch {}
+
+      // School name
+      try {
+        const { data: schoolId } = await supabase.rpc('current_user_school_id');
+        if (schoolId) {
+          const { data: school } = await supabase
+            .from('schools')
+            .select('name')
+            .eq('id', schoolId)
+            .maybeSingle();
+          if (school?.name) setSchoolName(school.name);
+        }
+      } catch {}
     };
-    getRole();
+    load();
   }, []);
 
   const toggleSection = (section: string) => {
@@ -92,8 +117,14 @@ function CustomDrawerContent(props: any) {
 
   return (
     <DrawerContentScrollView {...props} contentContainerStyle={styles.drawer}>
+      {/* School Logo + Name */}
       <View style={styles.logoBox}>
-        <Text style={styles.logoText}>CampusOS</Text>
+        {schoolLogo ? (
+          <Image source={{ uri: schoolLogo }} style={styles.logoImage} />
+        ) : null}
+        <Text style={styles.logoText} numberOfLines={2}>
+          {schoolName}
+        </Text>
         <Text style={styles.logoSub}>School Management</Text>
       </View>
 
@@ -268,10 +299,18 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
     marginBottom: 10,
+    alignItems: 'flex-start',
+  },
+  logoImage: {
+    width: 56,
+    height: 56,
+    borderRadius: 12,
+    marginBottom: 10,
+    resizeMode: 'contain',
   },
   logoText: {
     fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 22,
+    fontSize: 18,
     color: '#1e40af',
   },
   logoSub: {
