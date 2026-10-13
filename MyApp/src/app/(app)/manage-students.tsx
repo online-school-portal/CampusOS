@@ -29,6 +29,7 @@ export default function ManageStudentsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [busyMessage, setBusyMessage] = useState('Please wait...');
   const [students, setStudents] = useState<any[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
   const [selectedClass, setSelectedClass] = useState('all');
@@ -182,6 +183,7 @@ export default function ManageStudentsScreen() {
       return;
     }
 
+    setBusyMessage('Saving changes...');
     setBusy(true);
     try {
       let imageUrl = editStudent.image_url;
@@ -260,45 +262,48 @@ export default function ManageStudentsScreen() {
     }
   };
 
+  const performDelete = async (student: any) => {
+    setBusyMessage('Deleting student...');
+    setBusy(true);
+    try {
+      console.log('[delete] calling edge with student_id=', student.student_id);
+      const result = await deleteStudentViaEdge(student.student_id);
+      console.log('[delete] edge response=', result);
+      await loadStudents();
+      showToast('Student deleted successfully!', 'success');
+    } catch (err: any) {
+      console.log('[delete] FAILED full error:', err);
+      showToast(getFriendlyError(err), 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const handleDelete = (student: any) => {
     if (!student?.student_id) {
       showToast('Cannot delete: missing student_id on this record', 'error');
       return;
     }
 
-    Alert.alert(
-      'Delete Student',
-      `Delete ${student.full_name} (${student.student_id})?\nThis removes DB row, photo & auth (same as web).`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            setBusy(true);
-            try {
-              console.log('[delete] calling edge with student_id=', student.student_id);
+    const message = `Delete ${student.full_name} (${student.student_id})? This removes DB row, photo & auth.`;
 
-              // Exact same as web: body { student_id: business id }
-              // Edge function uses service role for private image + auth cleanup
-              const result = await deleteStudentViaEdge(student.student_id);
+    // Alert.alert does NOT work reliably on Expo web — use window.confirm there
+    if (Platform.OS === 'web') {
+      const ok =
+        typeof window !== 'undefined' &&
+        window.confirm(message);
+      if (ok) performDelete(student);
+      return;
+    }
 
-              console.log('[delete] edge response=', result);
-
-              // Reload from server — don't trust local list only
-              await loadStudents();
-
-              showToast('Student deleted successfully!', 'success');
-            } catch (err: any) {
-              console.log('[delete] FAILED full error:', err);
-              showToast(getFriendlyError(err), 'error');
-            } finally {
-              setBusy(false);
-            }
-          },
-        },
-      ]
-    );
+    Alert.alert('Delete Student', message, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => performDelete(student),
+      },
+    ]);
   };
 
   const filtered = students.filter((s) => {
@@ -379,7 +384,7 @@ export default function ManageStudentsScreen() {
 
   return (
     <View style={styles.container}>
-      {busy ? <LoadingSpinner visible={true} message="Please wait..." /> : null}
+      {busy ? <LoadingSpinner visible={true} message={busyMessage} /> : null}
 
       <Text style={styles.header}>Manage Students</Text>
 
