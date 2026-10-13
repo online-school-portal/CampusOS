@@ -553,7 +553,7 @@ export default function ManageTeachersScreen() {
             </Field>
             <Field label="Joining Date">
               {Platform.OS === 'web' ? (
-                <View style={styles.input}>
+                <View style={[styles.input, { position: 'relative', justifyContent: 'center' }]}>
                   {/* @ts-ignore */}
                   <input
                     type="date"
@@ -565,13 +565,29 @@ export default function ManageTeachersScreen() {
                       fontSize: 15,
                       width: '100%',
                       backgroundColor: 'transparent',
+                      color: form.joining_date ? '#0f172a' : '#94a3b8',
                     }}
                   />
+                  {!form.joining_date ? (
+                    <Text
+                      style={{
+                        position: 'absolute',
+                        left: 14,
+                        top: 15,
+                        fontSize: 15,
+                        color: '#94a3b8',
+                        fontFamily: 'PlusJakartaSans_400Regular',
+                      }}
+                      pointerEvents="none"
+                    >
+                      Joining Date
+                    </Text>
+                  ) : null}
                 </View>
               ) : (
                 <TextInput
                   style={styles.input}
-                  placeholder="YYYY-MM-DD"
+                  placeholder="Joining Date (YYYY-MM-DD)"
                   placeholderTextColor="#94a3b8"
                   value={form.joining_date}
                   onChangeText={(v) => setField('joining_date', v)}

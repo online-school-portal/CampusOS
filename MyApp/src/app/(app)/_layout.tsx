@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
+  Image,
 } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,24 +17,48 @@ function CustomDrawerContent(props: any) {
   const router = useRouter();
   const [role, setRole] = useState<string | null>(null);
   const [openSection, setOpenSection] = useState<string | null>(null);
+  const [schoolName, setSchoolName] = useState('CampusOS');
+  const [schoolLogo, setSchoolLogo] = useState<string | null>(null);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
-    const getRole = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+    const load = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) return;
 
       const userId = session.user.id;
-      const [{ data: admin }, { data: teacher }, { data: student }] = await Promise.all([
-        supabase.from('admins').select('id').eq('auth_id', userId).maybeSingle(),
-        supabase.from('teachers').select('id').eq('auth_id', userId).maybeSingle(),
-        supabase.from('students').select('id').eq('auth_id', userId).maybeSingle(),
-      ]);
+
+      const [{ data: admin }, { data: teacher }, { data: student }] =
+        await Promise.all([
+          supabase.from('admins').select('id').eq('auth_id', userId).maybeSingle(),
+          supabase.from('teachers').select('id').eq('auth_id', userId).maybeSingle(),
+          supabase.from('students').select('id').eq('auth_id', userId).maybeSingle(),
+        ]);
 
       if (admin) setRole('admin');
       else if (teacher) setRole('teacher');
       else if (student) setRole('student');
+
+      try {
+        const { data: logo } = await supabase.rpc('get_my_school_logo');
+        if (logo) setSchoolLogo(logo);
+      } catch {}
+
+      try {
+        const { data: schoolId } = await supabase.rpc('current_user_school_id');
+        if (schoolId) {
+          const { data: school } = await supabase
+            .from('schools')
+            .select('name')
+            .eq('id', schoolId)
+            .maybeSingle();
+          if (school?.name) setSchoolName(school.name);
+        }
+      } catch {}
     };
-    getRole();
+    load();
   }, []);
 
   const toggleSection = (section: string) => {
@@ -41,8 +66,15 @@ function CustomDrawerContent(props: any) {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.replace('/(auth)/login');
+    if (loggingOut) return;
+    setLoggingOut(true);
+    try {
+      await supabase.auth.signOut();
+      router.replace('/(auth)/login');
+    } catch (err) {
+      console.log('Logout error:', err);
+      setLoggingOut(false);
+    }
   };
 
   const MenuItem = ({
@@ -93,7 +125,12 @@ function CustomDrawerContent(props: any) {
   return (
     <DrawerContentScrollView {...props} contentContainerStyle={styles.drawer}>
       <View style={styles.logoBox}>
-        <Text style={styles.logoText}>CampusOS</Text>
+        {schoolLogo ? (
+          <Image source={{ uri: schoolLogo }} style={styles.logoImage} />
+        ) : null}
+        <Text style={styles.logoText} numberOfLines={2}>
+          {schoolName}
+        </Text>
         <Text style={styles.logoSub}>School Management</Text>
       </View>
 
@@ -105,7 +142,11 @@ function CustomDrawerContent(props: any) {
 
       {(role === 'admin' || role === 'teacher') && (
         <>
-          <SectionHeader title="Students" icon="people-outline" sectionKey="students" />
+          <SectionHeader
+            title="Students"
+            icon="people-outline"
+            sectionKey="students"
+          />
           {openSection === 'students' && (
             <View style={styles.subMenu}>
               {role === 'admin' && (
@@ -126,7 +167,9 @@ function CustomDrawerContent(props: any) {
                 <MenuItem
                   label="Transfer Students"
                   icon="swap-horizontal-outline"
-                  onPress={() => props.navigation.navigate('transfer-students')}
+                  onPress={() =>
+                    props.navigation.navigate('transfer-students')
+                  }
                   isSub
                 />
               )}
@@ -152,7 +195,11 @@ function CustomDrawerContent(props: any) {
 
       {role === 'admin' && (
         <>
-          <SectionHeader title="Teachers" icon="school-outline" sectionKey="teachers" />
+          <SectionHeader
+            title="Teachers"
+            icon="school-outline"
+            sectionKey="teachers"
+          />
           {openSection === 'teachers' && (
             <View style={styles.subMenu}>
               <MenuItem
@@ -172,11 +219,20 @@ function CustomDrawerContent(props: any) {
         </>
       )}
 
-      <SectionHeader title="Results" icon="document-text-outline" sectionKey="results" />
+      <SectionHeader
+        title="Results"
+        icon="document-text-outline"
+        sectionKey="results"
+      />
       {openSection === 'results' && (
         <View style={styles.subMenu}>
           {(role === 'admin' || role === 'teacher') && (
-            <MenuItem label="Add Results" icon="create-outline" onPress={() => {}} isSub />
+            <MenuItem
+              label="Add Results"
+              icon="create-outline"
+              onPress={() => {}}
+              isSub
+            />
           )}
           <MenuItem
             label="Manage Results"
@@ -203,9 +259,19 @@ function CustomDrawerContent(props: any) {
       )}
 
       <View style={styles.logoutContainer}>
-        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={20} color="#fff" />
-          <Text style={styles.logoutText}>Logout</Text>
+        <TouchableOpacity
+          style={[styles.logoutBtn, loggingOut && { opacity: 0.7 }]}
+          onPress={handleLogout}
+          disabled={loggingOut}
+        >
+          {loggingOut ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <Ionicons name="log-out-outline" size={20} color="#fff" />
+          )}
+          <Text style={styles.logoutText}>
+            {loggingOut ? 'Logging out...' : 'Logout'}
+          </Text>
         </TouchableOpacity>
       </View>
     </DrawerContentScrollView>
@@ -218,7 +284,9 @@ export default function AppLayout() {
 
   useEffect(() => {
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) {
         router.replace('/(auth)/login');
         return;
@@ -276,19 +344,27 @@ const styles = StyleSheet.create({
   },
   logoBox: {
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 16,
+    marginBottom: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
-    marginBottom: 10,
+    alignItems: 'flex-start',
+  },
+  logoImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    marginBottom: 8,
+    backgroundColor: '#e2e8f0',
   },
   logoText: {
     fontFamily: 'SpaceGrotesk_700Bold',
-    fontSize: 22,
-    color: '#1e40af',
+    fontSize: 18,
+    color: '#0f172a',
   },
   logoSub: {
     fontFamily: 'PlusJakartaSans_400Regular',
-    fontSize: 13,
+    fontSize: 12,
     color: '#64748b',
     marginTop: 2,
   },

@@ -303,7 +303,7 @@ export default function AddTeacherScreen() {
 
         <Text style={styles.fieldLabel}>Joining Date</Text>
         {Platform.OS === 'web' ? (
-          <View style={styles.input}>
+          <View style={[styles.input, styles.dateBox]}>
             {/* @ts-ignore */}
             <input
               type="date"
@@ -315,13 +315,19 @@ export default function AddTeacherScreen() {
                 fontSize: 15,
                 width: '100%',
                 backgroundColor: 'transparent',
+                color: joiningDate ? '#0f172a' : '#94a3b8',
               }}
             />
+            {!joiningDate ? (
+              <Text style={styles.datePlaceholderOverlay} pointerEvents="none">
+                Joining Date
+              </Text>
+            ) : null}
           </View>
         ) : (
           <TextInput
             style={styles.input}
-            placeholder="YYYY-MM-DD"
+            placeholder="Joining Date (YYYY-MM-DD)"
             placeholderTextColor="#94a3b8"
             value={joiningDate}
             onChangeText={setJoiningDate}
