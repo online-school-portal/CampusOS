@@ -4,8 +4,6 @@ import { supabase } from '@/lib/supabase';
 type ToastType = 'success' | 'error' | 'info';
 
 const SUPABASE_URL = 'https://irelkjvppoisvjpopdpb.supabase.co';
-const SUPABASE_ANON_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlyZWxranZwcG9pc3ZqcG9wZHBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYzNTUwMDAsImV4cCI6MjA4MTkzMTAwMH0.osF4wEZ-zm3cXScD1W8gMOkG81O2TbDJ8L47YvIIryw';
 const FUNCTIONS_BASE = `${SUPABASE_URL}/functions/v1`;
 
 export function showToast(message: string, type: ToastType = 'info') {
@@ -51,19 +49,49 @@ export function showToast(message: string, type: ToastType = 'info') {
   Alert.alert(title, message);
 }
 
+/**
+ * Friendlier errors — closer to web getFriendlyError.
+ * Handles CORS / Failed to fetch which browsers surface only as TypeError.
+ */
 export function getFriendlyError(err: any): string {
   if (!err) return 'Something went wrong. Please try again.';
 
   const msg =
     typeof err === 'string'
       ? err
-      : err.message || err.error || err.error_description || err.msg || JSON.stringify(err);
+      : err.message ||
+        err.error ||
+        err.error_description ||
+        err.msg ||
+        (typeof err === 'object' ? JSON.stringify(err) : String(err));
 
   const lower = String(msg).toLowerCase();
+  const name = (err?.name || '').toLowerCase();
+
+  // CORS / browser blocked the request (common with extra headers)
+  if (
+    lower.includes('failed to fetch') ||
+    lower.includes('networkerror') ||
+    lower.includes('cors') ||
+    lower.includes('access-control') ||
+    (name === 'typeerror' && lower.includes('fetch'))
+  ) {
+    return 'Request blocked (CORS or network). Check edge function headers match the web app (Authorization only — no extra apikey header).';
+  }
 
   if (lower.includes('bucket') || lower.includes('storage') || lower.includes('upload')) {
+    if (lower.includes('not found') || lower.includes('does not exist')) {
+      return 'Photo storage not found. Check edge function / bucket config.';
+    }
+    if (lower.includes('row-level security') || lower.includes('rls') || lower.includes('policy')) {
+      return 'Photo action blocked by storage policy.';
+    }
+    if (lower.includes('payload') || lower.includes('too large') || lower.includes('413')) {
+      return 'Photo is too large. Try a smaller image.';
+    }
     return `Photo error: ${msg}`;
   }
+
   if (
     lower.includes('row-level security') ||
     lower.includes('violates row-level') ||
@@ -72,25 +100,44 @@ export function getFriendlyError(err: any): string {
   ) {
     return 'Permission denied by database policy (RLS).';
   }
-  if (lower.includes('duplicate') || lower.includes('unique') || lower.includes('23505')) {
+
+  if (
+    lower.includes('duplicate') ||
+    lower.includes('unique') ||
+    lower.includes('already exists') ||
+    lower.includes('23505')
+  ) {
     return 'This record already exists (duplicate ID).';
   }
-  if (lower.includes('not found') || lower.includes('pgrst116')) {
+
+  if (lower.includes('foreign key') || lower.includes('23503')) {
+    return 'Related record missing (e.g. class or school).';
+  }
+
+  if (lower.includes('not found') || lower.includes('0 rows') || lower.includes('pgrst116')) {
     return 'Record not found. It may have been deleted.';
   }
-  if (lower.includes('network') || lower.includes('failed to fetch') || lower.includes('timeout')) {
-    return 'Network error. Check your connection.';
+
+  if (lower.includes('timeout')) {
+    return 'Request timed out. Try again.';
   }
+
   if (
     lower.includes('jwt') ||
     lower.includes('token') ||
     lower.includes('session') ||
-    lower.includes('authenticated')
+    lower.includes('authenticated') ||
+    lower.includes('admin not authenticated')
   ) {
     return 'Session expired. Please log in again.';
   }
 
-  return msg || 'Something went wrong. Please try again.';
+  // Prefer real server message when we have one
+  if (msg && msg !== '{}' && msg !== '[object Object]') {
+    return msg;
+  }
+
+  return 'Something went wrong. Please try again.';
 }
 
 async function getSessionToken(): Promise<string> {
@@ -104,12 +151,16 @@ async function getSessionToken(): Promise<string> {
   return session.access_token;
 }
 
-/** Shared headers for edge functions (matches web + apikey) */
+/**
+ * Headers match the web dashboard exactly:
+ * Authorization: Bearer <access_token>
+ * Content-Type: application/json  (for JSON bodies only)
+ * NO apikey header — that triggers CORS preflight rejection on your edge functions.
+ */
 async function edgeHeaders(json = true): Promise<Record<string, string>> {
   const token = await getSessionToken();
   const headers: Record<string, string> = {
     Authorization: `Bearer ${token}`,
-    apikey: SUPABASE_ANON_KEY,
   };
   if (json) headers['Content-Type'] = 'application/json';
   return headers;
@@ -146,7 +197,7 @@ export async function uploadStudentImage(uri: string) {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
-      apikey: SUPABASE_ANON_KEY,
+      // no apikey — matches web
     },
     body: formData,
   });
@@ -173,7 +224,6 @@ export async function updateStudentImage(
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
-      apikey: SUPABASE_ANON_KEY,
     },
     body: formData,
   });
@@ -182,13 +232,8 @@ export async function updateStudentImage(
 }
 
 /**
- * Delete student — exact web payload.
- * Edge function uses service role to:
- *  - delete storage image (private bucket)
- *  - delete auth user if any
- *  - delete students row
- *
- * Body: { student_id: "<business id e.g. 02>" }
+ * Delete student — exact web headers + body.
+ * Body: { student_id: "<business id>" }
  */
 export async function deleteStudentViaEdge(studentBusinessId: string) {
   if (!studentBusinessId) {
@@ -207,7 +252,6 @@ export async function deleteStudentViaEdge(studentBusinessId: string) {
 
   const data = await parseEdgeResponse(res);
 
-  // Some functions return { success: false } with HTTP 200
   if (data && data.success === false) {
     throw data.error ?? data.message ?? data;
   }
