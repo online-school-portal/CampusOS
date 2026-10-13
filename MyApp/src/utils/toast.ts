@@ -49,10 +49,6 @@ export function showToast(message: string, type: ToastType = 'info') {
   Alert.alert(title, message);
 }
 
-/**
- * Friendlier errors — closer to web getFriendlyError.
- * Handles CORS / Failed to fetch which browsers surface only as TypeError.
- */
 export function getFriendlyError(err: any): string {
   if (!err) return 'Something went wrong. Please try again.';
 
@@ -68,7 +64,6 @@ export function getFriendlyError(err: any): string {
   const lower = String(msg).toLowerCase();
   const name = (err?.name || '').toLowerCase();
 
-  // CORS / browser blocked the request (common with extra headers)
   if (
     lower.includes('failed to fetch') ||
     lower.includes('networkerror') ||
@@ -76,67 +71,42 @@ export function getFriendlyError(err: any): string {
     lower.includes('access-control') ||
     (name === 'typeerror' && lower.includes('fetch'))
   ) {
-    return 'Request blocked (CORS or network). Check edge function headers match the web app (Authorization only — no extra apikey header).';
+    return 'Request blocked (CORS or network). Headers must match the web app (Authorization only).';
+  }
+
+  if (lower.includes('teachers_email_key') || lower.includes('email') && lower.includes('already')) {
+    return 'A teacher with this email address already exists.';
+  }
+  if (lower.includes('teachers_teacher_id_key') || (lower.includes('teacher') && lower.includes('already exists'))) {
+    return 'A teacher with this Teacher ID already exists.';
   }
 
   if (lower.includes('bucket') || lower.includes('storage') || lower.includes('upload')) {
-    if (lower.includes('not found') || lower.includes('does not exist')) {
-      return 'Photo storage not found. Check edge function / bucket config.';
-    }
-    if (lower.includes('row-level security') || lower.includes('rls') || lower.includes('policy')) {
-      return 'Photo action blocked by storage policy.';
-    }
-    if (lower.includes('payload') || lower.includes('too large') || lower.includes('413')) {
-      return 'Photo is too large. Try a smaller image.';
-    }
     return `Photo error: ${msg}`;
   }
-
   if (
     lower.includes('row-level security') ||
-    lower.includes('violates row-level') ||
     lower.includes('permission denied') ||
     lower.includes('42501')
   ) {
     return 'Permission denied by database policy (RLS).';
   }
-
-  if (
-    lower.includes('duplicate') ||
-    lower.includes('unique') ||
-    lower.includes('already exists') ||
-    lower.includes('23505')
-  ) {
-    return 'This record already exists (duplicate ID).';
+  if (lower.includes('duplicate') || lower.includes('unique') || lower.includes('23505')) {
+    return 'This record already exists (duplicate ID or email).';
   }
-
-  if (lower.includes('foreign key') || lower.includes('23503')) {
-    return 'Related record missing (e.g. class or school).';
-  }
-
-  if (lower.includes('not found') || lower.includes('0 rows') || lower.includes('pgrst116')) {
+  if (lower.includes('not found') || lower.includes('pgrst116')) {
     return 'Record not found. It may have been deleted.';
   }
-
-  if (lower.includes('timeout')) {
-    return 'Request timed out. Try again.';
-  }
-
   if (
     lower.includes('jwt') ||
     lower.includes('token') ||
     lower.includes('session') ||
-    lower.includes('authenticated') ||
-    lower.includes('admin not authenticated')
+    lower.includes('authenticated')
   ) {
     return 'Session expired. Please log in again.';
   }
 
-  // Prefer real server message when we have one
-  if (msg && msg !== '{}' && msg !== '[object Object]') {
-    return msg;
-  }
-
+  if (msg && msg !== '{}' && msg !== '[object Object]') return msg;
   return 'Something went wrong. Please try again.';
 }
 
@@ -151,12 +121,6 @@ async function getSessionToken(): Promise<string> {
   return session.access_token;
 }
 
-/**
- * Headers match the web dashboard exactly:
- * Authorization: Bearer <access_token>
- * Content-Type: application/json  (for JSON bodies only)
- * NO apikey header — that triggers CORS preflight rejection on your edge functions.
- */
 async function edgeHeaders(json = true): Promise<Record<string, string>> {
   const token = await getSessionToken();
   const headers: Record<string, string> = {
@@ -174,100 +138,156 @@ async function parseEdgeResponse(res: Response) {
   } catch {
     data = { message: text || `HTTP ${res.status}` };
   }
-
   console.log('[edge]', res.status, data);
-
   if (!res.ok) {
     throw data?.error ?? data ?? { message: `Request failed (${res.status})` };
   }
-
   return data;
 }
 
-/** Upload new student image — web: upload-student-images */
+// ─── Student helpers (kept for existing screens) ───
+
 export async function uploadStudentImage(uri: string) {
   const token = await getSessionToken();
-  const response = await fetch(uri);
-  const blob = await response.blob();
-
+  const blob = await (await fetch(uri)).blob();
   const formData = new FormData();
   formData.append('image', blob as any, 'photo.jpg');
-
   const res = await fetch(`${FUNCTIONS_BASE}/upload-student-images`, {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      // no apikey — matches web
-    },
+    headers: { Authorization: `Bearer ${token}` },
     body: formData,
   });
-
   return parseEdgeResponse(res);
 }
 
-/** Replace student image — web: update-student-image */
 export async function updateStudentImage(
   studentRowId: string,
   uri: string,
   existingPath: string = ''
 ) {
   const token = await getSessionToken();
-  const response = await fetch(uri);
-  const blob = await response.blob();
-
+  const blob = await (await fetch(uri)).blob();
   const formData = new FormData();
   formData.append('student_id', studentRowId);
   formData.append('file', blob as any, 'photo.jpg');
   formData.append('existing_path', existingPath || '');
-
   const res = await fetch(`${FUNCTIONS_BASE}/update-student-image`, {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: { Authorization: `Bearer ${token}` },
     body: formData,
   });
-
   return parseEdgeResponse(res);
 }
 
-/**
- * Delete student — exact web headers + body.
- * Body: { student_id: "<business id>" }
- */
 export async function deleteStudentViaEdge(studentBusinessId: string) {
-  if (!studentBusinessId) {
-    throw { message: 'Missing student_id' };
-  }
-
+  if (!studentBusinessId) throw { message: 'Missing student_id' };
   const headers = await edgeHeaders(true);
-
   const res = await fetch(`${FUNCTIONS_BASE}/delete-student`, {
     method: 'POST',
     headers,
-    body: JSON.stringify({
-      student_id: studentBusinessId,
-    }),
+    body: JSON.stringify({ student_id: studentBusinessId }),
   });
-
   const data = await parseEdgeResponse(res);
-
-  if (data && data.success === false) {
-    throw data.error ?? data.message ?? data;
-  }
-
+  if (data && data.success === false) throw data.error ?? data.message ?? data;
   return data;
 }
 
-/** Create student — web: create-student-auth */
 export async function createStudentViaEdge(payload: Record<string, any>) {
   const headers = await edgeHeaders(true);
-
   const res = await fetch(`${FUNCTIONS_BASE}/create-student-auth`, {
     method: 'POST',
     headers,
     body: JSON.stringify(payload),
   });
+  return parseEdgeResponse(res);
+}
 
+// ─── Teacher helpers (match web) ───
+
+/** Web: upload-teacher-images → returns { url, path } */
+export async function uploadTeacherImage(uri: string) {
+  const token = await getSessionToken();
+  const blob = await (await fetch(uri)).blob();
+  const formData = new FormData();
+  formData.append('file', blob as any, 'photo.jpg');
+  const res = await fetch(`${FUNCTIONS_BASE}/upload-teacher-images`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  });
+  return parseEdgeResponse(res);
+}
+
+/** Web: update-teacher-image */
+export async function updateTeacherImage(
+  teacherUuid: string,
+  uri: string,
+  existingPath: string = ''
+) {
+  const token = await getSessionToken();
+  const blob = await (await fetch(uri)).blob();
+  const formData = new FormData();
+  formData.append('teacher_id', teacherUuid);
+  formData.append('file', blob as any, 'photo.jpg');
+  formData.append('existing_path', existingPath || '');
+  const res = await fetch(`${FUNCTIONS_BASE}/update-teacher-image`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  });
+  return parseEdgeResponse(res);
+}
+
+/** Web: create-teacher */
+export async function createTeacherViaEdge(payload: Record<string, any>) {
+  const headers = await edgeHeaders(true);
+  const res = await fetch(`${FUNCTIONS_BASE}/create-teacher`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(payload),
+  });
+  return parseEdgeResponse(res);
+}
+
+/** Web: delete-teacher — body { teacher_id: uuid } */
+export async function deleteTeacherViaEdge(teacherUuid: string) {
+  if (!teacherUuid) throw { message: 'Missing teacher id' };
+  const headers = await edgeHeaders(true);
+  const res = await fetch(`${FUNCTIONS_BASE}/delete-teacher`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ teacher_id: teacherUuid }),
+  });
+  return parseEdgeResponse(res);
+}
+
+/** Web: update-teacher-auth */
+export async function updateTeacherAuth(payload: {
+  teacher_id: string;
+  auth_id?: string | null;
+  email?: string | null;
+  password?: string | null;
+}) {
+  const headers = await edgeHeaders(true);
+  const res = await fetch(`${FUNCTIONS_BASE}/update-teacher-auth`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(payload),
+  });
+  return parseEdgeResponse(res);
+}
+
+/** Web: update-teacher-classes */
+export async function updateTeacherClasses(payload: {
+  teacher_id: string;
+  teacher: Record<string, any>;
+  class_ids: string[];
+}) {
+  const headers = await edgeHeaders(true);
+  const res = await fetch(`${FUNCTIONS_BASE}/update-teacher-classes`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(payload),
+  });
   return parseEdgeResponse(res);
 }
