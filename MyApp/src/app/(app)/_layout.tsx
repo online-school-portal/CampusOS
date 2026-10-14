@@ -230,14 +230,14 @@ function CustomDrawerContent(props: any) {
             <MenuItem
               label="Add Results"
               icon="create-outline"
-              onPress={() => {}}
+              onPress={() => props.navigation.navigate('add-result')}
               isSub
             />
           )}
           <MenuItem
             label="Manage Results"
             icon="folder-open-outline"
-            onPress={() => props.navigation.navigate('results')}
+            onPress={() => props.navigation.navigate('manage-results')}
             isSub
           />
         </View>
@@ -329,6 +329,8 @@ export default function AppLayout() {
       <Drawer.Screen name="subjects" options={{ title: 'Subjects' }} />
       <Drawer.Screen name="add-teacher" options={{ title: 'Add Teacher' }} />
       <Drawer.Screen name="manage-teachers" options={{ title: 'Manage Teachers' }} />
+      <Drawer.Screen name="add-result" options={{ title: 'Add Result' }} />
+      <Drawer.Screen name="manage-results" options={{ title: 'Manage Results' }} />
       <Drawer.Screen name="results" options={{ title: 'Results' }} />
     </Drawer>
   );
