@@ -27,6 +27,11 @@ import {
   AFFECTIVE_TRAITS,
   calculateGrade,
 } from '@/lib/resultsConfig';
+import ResultReportModal from '@/components/ResultReportModal';
+import {
+  prepareReportData,
+  PreparedReport,
+} from '@/lib/reportHelpers';
 
 export default function ManageResultsScreen() {
   const [loading, setLoading] = useState(true);
@@ -66,6 +71,9 @@ export default function ManageResultsScreen() {
   const [editHeadmasterComment, setEditHeadmasterComment] = useState('');
   const [originalTerm, setOriginalTerm] = useState('');
   const [originalSession, setOriginalSession] = useState('');
+
+  const [reportVisible, setReportVisible] = useState(false);
+  const [reportData, setReportData] = useState<PreparedReport | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -315,6 +323,26 @@ export default function ManageResultsScreen() {
 
   const caConfig = CA_TYPES[editCaType] || CA_TYPES.standard_20_20_60;
 
+  const handleViewReport = async (item: any) => {
+    setBusyMsg('Loading report...');
+    setBusy(true);
+    try {
+      const data = await prepareReportData(
+        item.student_id,
+        item.class_id,
+        item.term,
+        item.session
+      );
+      setReportData(data);
+      setReportVisible(true);
+    } catch (err) {
+      showToast(getFriendlyError(err), 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+
   const ScoreChips = ({
     value,
     onChange,
@@ -368,6 +396,10 @@ export default function ManageResultsScreen() {
           </View>
         </View>
         <View style={styles.actions}>
+          <TouchableOpacity style={styles.viewBtn} onPress={() => handleViewReport(item)}>
+            <Ionicons name="eye-outline" size={16} color="#0f766e" />
+            <Text style={styles.viewText}>View</Text>
+          </TouchableOpacity>
           {canEdit ? (
             <TouchableOpacity style={styles.editBtn} onPress={() => openEdit(item)}>
               <Ionicons name="create-outline" size={16} color="#1e40af" />
@@ -620,6 +652,15 @@ export default function ManageResultsScreen() {
           </ScrollView>
         </View>
       </Modal>
+
+      <ResultReportModal
+        visible={reportVisible}
+        report={reportData}
+        onClose={() => {
+          setReportVisible(false);
+          setReportData(null);
+        }}
+      />
     </View>
   );
 }
@@ -701,6 +742,20 @@ const styles = StyleSheet.create({
   },
   meta: { fontSize: 13, color: '#64748b', marginTop: 2 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  viewBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#ecfdf5',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+  },
+  viewText: {
+    color: '#0f766e',
+    fontFamily: 'PlusJakartaSans_600SemiBold',
+    fontSize: 13,
+  },
   editBtn: {
     flexDirection: 'row',
     alignItems: 'center',
