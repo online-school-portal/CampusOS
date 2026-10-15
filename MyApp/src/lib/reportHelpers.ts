@@ -337,7 +337,7 @@ export function buildPrintableHTML(report: PreparedReport): string {
       </tr>
     </tbody>
   </table>
-  <div class="section">Psychomotor Domain</div>
+  <div class="section">Affective Domain</div>
   <table>
     <thead><tr><th style="text-align:left;">Activity</th><th>100</th><th>85</th><th>75</th><th>65</th><th>55</th></tr></thead>
     <tbody>${domainRows(psychomotor)}</tbody>
