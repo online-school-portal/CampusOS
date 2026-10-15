@@ -435,73 +435,83 @@ export default function ManageResultsScreen() {
     <View style={styles.container}>
       {busy ? <LoadingSpinner visible message={busyMsg} /> : null}
 
-      <Text style={styles.header}>Manage Results</Text>
-
-      <Text style={styles.fieldLabel}>Class *</Text>
-      <View style={styles.pickerWrapper}>
-        <Picker selectedValue={classId} onValueChange={setClassId} style={styles.picker}>
-          <Picker.Item label="Select class" value="" color="#94a3b8" />
-          {classes.map((c) => (
-            <Picker.Item key={c.id} label={c.name} value={c.id} />
-          ))}
-        </Picker>
-      </View>
-
-      <Text style={styles.fieldLabel}>Student (optional)</Text>
-      <View style={styles.pickerWrapper}>
-        <Picker
-          selectedValue={studentFilter}
-          onValueChange={setStudentFilter}
-          style={styles.picker}
-          enabled={!!classId}
-        >
-          <Picker.Item label="All students" value="" />
-          {students.map((s) => (
-            <Picker.Item key={s.id} label={s.full_name} value={s.id} />
-          ))}
-        </Picker>
-      </View>
-
-      <Text style={styles.fieldLabel}>Term</Text>
-      <View style={styles.pickerWrapper}>
-        <Picker selectedValue={term} onValueChange={setTerm} style={styles.picker}>
-          <Picker.Item label="All terms" value="" />
-          {TERMS.map((t) => (
-            <Picker.Item key={t} label={t} value={t} />
-          ))}
-        </Picker>
-      </View>
-
-      <Text style={styles.fieldLabel}>Session</Text>
-      <View style={styles.pickerWrapper}>
-        <Picker selectedValue={session} onValueChange={setSession} style={styles.picker}>
-          <Picker.Item label="All sessions" value="" />
-          {SESSIONS.map((s) => (
-            <Picker.Item key={s} label={s} value={s} />
-          ))}
-        </Picker>
-      </View>
-
-      <Text style={styles.count}>
-        Results in view: <Text style={styles.countBold}>{results.length}</Text>
-      </Text>
-
-      <FlatList
-        data={results}
-        keyExtractor={(item, i) =>
-          `${item.student_id}-${item.class_id}-${item.term}-${item.session}-${i}`
-        }
-        renderItem={renderItem}
+      <ScrollView
+        style={styles.pageScroll}
+        contentContainerStyle={styles.pageContent}
+        keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#1e40af']} />
         }
-        contentContainerStyle={{ paddingBottom: 40 }}
-        ListEmptyComponent={
-          <Text style={styles.empty}>
-            {classId ? 'No results found' : 'Select a class to view results'}
-          </Text>
-        }
-      />
+      >
+        <Text style={styles.header}>Manage Results</Text>
+
+        <View style={styles.filtersCard}>
+          <Text style={styles.fieldLabel}>Class *</Text>
+          <View style={styles.pickerWrapper}>
+            <Picker selectedValue={classId} onValueChange={setClassId} style={styles.picker}>
+              <Picker.Item label="Select class" value="" color="#94a3b8" />
+              {classes.map((c) => (
+                <Picker.Item key={c.id} label={c.name} value={c.id} />
+              ))}
+            </Picker>
+          </View>
+
+          <Text style={styles.fieldLabel}>Student (optional)</Text>
+          <View style={styles.pickerWrapper}>
+            <Picker
+              selectedValue={studentFilter}
+              onValueChange={setStudentFilter}
+              style={styles.picker}
+              enabled={!!classId}
+            >
+              <Picker.Item label="All students" value="" />
+              {students.map((s) => (
+                <Picker.Item key={s.id} label={s.full_name} value={s.id} />
+              ))}
+            </Picker>
+          </View>
+
+          <Text style={styles.fieldLabel}>Term</Text>
+          <View style={styles.pickerWrapper}>
+            <Picker selectedValue={term} onValueChange={setTerm} style={styles.picker}>
+              <Picker.Item label="All terms" value="" />
+              {TERMS.map((t) => (
+                <Picker.Item key={t} label={t} value={t} />
+              ))}
+            </Picker>
+          </View>
+
+          <Text style={styles.fieldLabel}>Session</Text>
+          <View style={styles.pickerWrapper}>
+            <Picker selectedValue={session} onValueChange={setSession} style={styles.picker}>
+              <Picker.Item label="All sessions" value="" />
+              {SESSIONS.map((s) => (
+                <Picker.Item key={s} label={s} value={s} />
+              ))}
+            </Picker>
+          </View>
+        </View>
+
+        <Text style={styles.count}>
+          Results in view: <Text style={styles.countBold}>{results.length}</Text>
+        </Text>
+
+        <View style={styles.grid}>
+          {results.length === 0 ? (
+            <Text style={styles.empty}>
+              {classId ? 'No results found' : 'Select a class to view results'}
+            </Text>
+          ) : (
+            results.map((item, i) => (
+              <View
+                key={`${item.student_id}-${item.class_id}-${item.term}-${item.session}-${i}`}
+              >
+                {renderItem({ item })}
+              </View>
+            ))
+          )}
+        </View>
+      </ScrollView>
 
       {/* EDIT MODAL */}
       <Modal
@@ -666,7 +676,18 @@ export default function ManageResultsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f1f5f9', padding: 20 },
+  container: { flex: 1, backgroundColor: '#f1f5f9' },
+  pageScroll: { flex: 1 },
+  pageContent: { padding: 16, paddingBottom: 48 },
+  filtersCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    marginBottom: 12,
+  },
+  grid: { gap: 0 },
   header: {
     fontSize: 24,
     fontFamily: 'SpaceGrotesk_700Bold',

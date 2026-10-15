@@ -277,6 +277,8 @@ export default function AddResultScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.header}>Add Result</Text>
 
+        <View style={styles.formCard}>
+
         <Text style={styles.fieldLabel}>Class *</Text>
         <View style={styles.pickerWrapper}>
           <Picker
@@ -573,6 +575,7 @@ export default function AddResultScreen() {
         >
           <Text style={styles.buttonText}>Save Result</Text>
         </TouchableOpacity>
+        </View>
       </ScrollView>
     </View>
   );
@@ -580,7 +583,14 @@ export default function AddResultScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f1f5f9' },
-  content: { padding: 20, paddingBottom: 60 },
+  content: { padding: 16, paddingBottom: 48 },
+  formCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
   header: {
     fontSize: 24,
     fontFamily: 'SpaceGrotesk_700Bold',
@@ -588,10 +598,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   fieldLabel: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: 'PlusJakartaSans_600SemiBold',
-    color: '#64748b',
+    color: '#334155',
     marginBottom: 6,
+    marginTop: 4,
   },
   sectionTitle: {
     fontSize: 16,

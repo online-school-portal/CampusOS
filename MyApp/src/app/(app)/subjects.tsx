@@ -5,7 +5,8 @@ import {
   TextInput,
   StyleSheet,
   TouchableOpacity,
-  FlatList,
+  ScrollView,
+  Platform,
   Alert,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
@@ -27,11 +28,8 @@ export default function SubjectsScreen() {
   }, []);
 
   useEffect(() => {
-    if (selectedClass) {
-      loadSubjects(selectedClass);
-    } else {
-      setSubjects([]);
-    }
+    if (selectedClass) loadSubjects(selectedClass);
+    else setSubjects([]);
   }, [selectedClass]);
 
   const loadClasses = async () => {
@@ -61,7 +59,6 @@ export default function SubjectsScreen() {
       setSubjects(data || []);
     } catch (err) {
       console.log(err);
-      showToast(getFriendlyError(err), 'error');
       setSubjects([]);
     }
   };
@@ -79,24 +76,17 @@ export default function SubjectsScreen() {
     setSaving(true);
     try {
       const { data: schoolId } = await supabase.rpc('current_user_school_id');
-
       const names = text
         .split('\n')
         .map((n) => n.trim())
         .filter(Boolean);
-
-      const className = classes.find((c) => c.id === selectedClass)?.name || null;
-
       const rows = names.map((name) => ({
         name,
         class_id: selectedClass,
-        class: className,
         school_id: schoolId,
       }));
-
       const { error } = await supabase.from('subjects').insert(rows);
       if (error) throw error;
-
       setText('');
       await loadSubjects(selectedClass);
       showToast(`${names.length} subject(s) added`, 'success');
@@ -107,24 +97,29 @@ export default function SubjectsScreen() {
     }
   };
 
+  const performDelete = async (item: any) => {
+    setSaving(true);
+    try {
+      const { error } = await supabase.from('subjects').delete().eq('id', item.id);
+      if (error) throw error;
+      setSubjects((prev) => prev.filter((s) => s.id !== item.id));
+      showToast('Subject deleted', 'success');
+    } catch (err) {
+      showToast(getFriendlyError(err), 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleDelete = (item: any) => {
-    Alert.alert('Delete Subject', `Delete "${item.name}"?`, [
+    const msg = `Delete "${item.name}"?`;
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.confirm(msg)) performDelete(item);
+      return;
+    }
+    Alert.alert('Delete Subject', msg, [
       { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          setSaving(true);
-          const { error } = await supabase.from('subjects').delete().eq('id', item.id);
-          setSaving(false);
-          if (error) {
-            showToast(getFriendlyError(error), 'error');
-          } else {
-            setSubjects((prev) => prev.filter((s) => s.id !== item.id));
-            showToast('Subject deleted', 'success');
-          }
-        },
-      },
+      { text: 'Delete', style: 'destructive', onPress: () => performDelete(item) },
     ]);
   };
 
@@ -134,88 +129,101 @@ export default function SubjectsScreen() {
 
   return (
     <View style={styles.container}>
-      {saving ? <LoadingSpinner visible={true} message="Saving..." /> : null}
+      {saving ? <LoadingSpinner visible message="Please wait..." /> : null}
 
-      <Text style={styles.header}>Subjects</Text>
+      <ScrollView
+        style={styles.pageScroll}
+        contentContainerStyle={styles.pageContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text style={styles.header}>Subjects</Text>
 
-      <Text style={styles.label}>Select Class</Text>
-      <View style={styles.pickerWrapper}>
-        <Picker
-          selectedValue={selectedClass}
-          onValueChange={setSelectedClass}
-          style={styles.picker}
-        >
-          <Picker.Item label="-- Select Class --" value="" color="#94a3b8" />
-          {classes.map((cls) => (
-            <Picker.Item key={cls.id} label={cls.name} value={cls.id} />
-          ))}
-        </Picker>
-      </View>
+        <View style={styles.card}>
+          <Text style={styles.label}>Select Class</Text>
+          <View style={styles.pickerWrapper}>
+            <Picker
+              selectedValue={selectedClass}
+              onValueChange={setSelectedClass}
+              style={styles.picker}
+            >
+              <Picker.Item label="-- Select Class --" value="" color="#94a3b8" />
+              {classes.map((cls) => (
+                <Picker.Item key={cls.id} label={cls.name} value={cls.id} />
+              ))}
+            </Picker>
+          </View>
 
-      {selectedClass ? (
-        <View style={{ flex: 1 }}>
-          <Text style={styles.count}>
-            Subjects in view:{' '}
-            <Text style={styles.countBold}>{subjects.length}</Text>
-          </Text>
+          {selectedClass ? (
+            <>
+              <Text style={styles.count}>
+                Subjects in view:{' '}
+                <Text style={styles.countBold}>{subjects.length}</Text>
+              </Text>
 
-          <Text style={styles.label}>Enter Subjects (one per line)</Text>
-          <TextInput
-            style={styles.textarea}
-            multiline
-            numberOfLines={6}
-            placeholder={'e.g.\nMathematics\nEnglish\nBiology'}
-            placeholderTextColor="#94a3b8"
-            value={text}
-            onChangeText={setText}
-            textAlignVertical="top"
-          />
+              <Text style={styles.label}>Enter Subjects (one per line)</Text>
+              <TextInput
+                style={styles.textarea}
+                multiline
+                numberOfLines={6}
+                placeholder={'e.g.\nMathematics\nEnglish\nBiology'}
+                placeholderTextColor="#94a3b8"
+                value={text}
+                onChangeText={setText}
+                textAlignVertical="top"
+              />
 
-          <TouchableOpacity
-            style={[styles.saveBtn, saving ? { opacity: 0.7 } : null]}
-            onPress={handleSave}
-            disabled={saving}
-          >
-            <Text style={styles.saveText}>Save Subjects</Text>
-          </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.saveBtn, saving && { opacity: 0.7 }]}
+                onPress={handleSave}
+                disabled={saving}
+              >
+                <Text style={styles.saveText}>Save Subjects</Text>
+              </TouchableOpacity>
 
-          <Text style={[styles.label, { marginTop: 24 }]}>Registered Subjects</Text>
+              <Text style={[styles.label, { marginTop: 20 }]}>
+                Registered Subjects
+              </Text>
 
-          <FlatList
-            data={subjects}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <View style={styles.row}>
-                <Text style={styles.rowName}>{item.name}</Text>
-                <TouchableOpacity onPress={() => handleDelete(item)}>
-                  <Ionicons name="trash-outline" size={20} color="#dc2626" />
-                </TouchableOpacity>
-              </View>
-            )}
-            ListEmptyComponent={
-              <Text style={styles.empty}>No subjects for this class yet.</Text>
-            }
-            contentContainerStyle={{ paddingBottom: 40 }}
-          />
+              {subjects.length === 0 ? (
+                <Text style={styles.empty}>No subjects for this class yet.</Text>
+              ) : (
+                <View style={styles.list}>
+                  {subjects.map((item) => (
+                    <View key={item.id} style={styles.row}>
+                      <Text style={styles.rowName}>{item.name}</Text>
+                      <TouchableOpacity onPress={() => handleDelete(item)}>
+                        <Ionicons name="trash-outline" size={20} color="#dc2626" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </>
+          ) : (
+            <Text style={styles.empty}>Select a class to manage subjects</Text>
+          )}
         </View>
-      ) : (
-        <Text style={styles.empty}>Select a class to manage subjects</Text>
-      )}
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f1f5f9',
-    padding: 20,
-  },
+  container: { flex: 1, backgroundColor: '#f1f5f9' },
+  pageScroll: { flex: 1 },
+  pageContent: { padding: 16, paddingBottom: 48 },
   header: {
-    fontSize: 24,
+    fontSize: 22,
     fontFamily: 'SpaceGrotesk_700Bold',
     color: '#0f172a',
-    marginBottom: 20,
+    marginBottom: 16,
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
   label: {
     fontSize: 14,
@@ -224,20 +232,18 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   pickerWrapper: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     borderWidth: 1.5,
     borderColor: '#e2e8f0',
-    borderRadius: 12,
-    marginBottom: 16,
+    borderRadius: 10,
+    marginBottom: 12,
     overflow: 'hidden',
   },
-  picker: {
-    height: 50,
-  },
+  picker: { height: 48 },
   count: {
     fontSize: 14,
     color: '#64748b',
-    marginBottom: 16,
+    marginBottom: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
   },
   countBold: {
@@ -245,15 +251,15 @@ const styles = StyleSheet.create({
     color: '#0f172a',
   },
   textarea: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     borderWidth: 1.5,
     borderColor: '#e2e8f0',
     borderRadius: 12,
     padding: 14,
+    minHeight: 120,
     fontSize: 15,
-    minHeight: 130,
+    marginBottom: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    marginBottom: 16,
     color: '#0f172a',
   },
   saveBtn: {
@@ -264,16 +270,17 @@ const styles = StyleSheet.create({
   },
   saveText: {
     color: '#fff',
-    fontSize: 16,
     fontFamily: 'PlusJakartaSans_700Bold',
+    fontSize: 15,
   },
+  list: { marginTop: 4 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#ffffff',
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: '#f8fafc',
+    borderRadius: 10,
+    padding: 14,
     marginBottom: 8,
     borderWidth: 1,
     borderColor: '#e2e8f0',
@@ -282,12 +289,13 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: 'PlusJakartaSans_600SemiBold',
     color: '#0f172a',
+    flex: 1,
   },
   empty: {
     textAlign: 'center',
     color: '#64748b',
-    marginTop: 30,
-    fontSize: 15,
+    marginTop: 12,
+    fontSize: 14,
     fontFamily: 'PlusJakartaSans_400Regular',
   },
 });
