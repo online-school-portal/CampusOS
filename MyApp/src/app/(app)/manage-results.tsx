@@ -33,6 +33,7 @@ import {
   PreparedReport,
   printReports,
   resultKey,
+  openPrintPlaceholder,
 } from '@/lib/reportHelpers';
 
 export default function ManageResultsScreen() {
@@ -357,6 +358,8 @@ export default function ManageResultsScreen() {
       showToast('Bulk print works on web — open in browser.', 'info');
       return;
     }
+    // MUST open window in the same tick as the click (anti pop-up-block)
+    const win = openPrintPlaceholder('Preparing bulk reports...');
     setBusyMsg('Preparing reports...');
     setBusy(true);
     try {
@@ -370,9 +373,23 @@ export default function ManageResultsScreen() {
         );
         reports.push(data);
       }
-      printReports(reports);
-      showToast(`Prepared ${reports.length} report(s) for print.`, 'success');
+      if (!reports.length) {
+        if (win && !win.closed) win.close();
+        showToast('No report data to print.', 'error');
+        return;
+      }
+      printReports(reports, win);
+      showToast(`Prepared ${reports.length} report(s). Use Print → Save as PDF.`, 'success');
     } catch (err) {
+      if (win && !win.closed) {
+        try {
+          win.document.open();
+          win.document.write(
+            '<p style="font-family:sans-serif;padding:24px;">Failed to prepare reports. Close this tab and try again.</p>'
+          );
+          win.document.close();
+        } catch {}
+      }
       showToast(getFriendlyError(err), 'error');
     } finally {
       setBusy(false);
@@ -559,43 +576,39 @@ export default function ManageResultsScreen() {
               <Text style={styles.avatarLetter}>{name[0]?.toUpperCase()}</Text>
             </View>
           )}
-          <View style={{ flex: 1 }}>
-            <Text style={styles.name}>{name}</Text>
-            <Text style={styles.meta}>
-              {item.term} • {item.session}
-              {isLocked ? ' • Locked' : ''}
+          <View style={styles.cardHeaderText}>
+            <Text style={styles.name} numberOfLines={1}>
+              {name}
             </Text>
             <Text style={styles.meta}>
-              ID: {item.students?.student_id || '—'} ·{' '}
-              {item.classes?.name || '—'}
+              {item.term} • {item.session}
+              {isLocked ? '  🔒' : ''}
+            </Text>
+            <Text style={styles.metaSmall}>
+              {item.students?.student_id || '—'}
+              {item.classes?.name ? ` · ${item.classes.name}` : ''}
             </Text>
           </View>
         </View>
-        <View style={styles.actions}>
-          <TouchableOpacity style={styles.viewBtn} onPress={() => handleViewReport(item)}>
-            <Ionicons name="eye-outline" size={16} color="#0f766e" />
-            <Text style={styles.viewText}>View</Text>
+        <View style={styles.actionsGrid}>
+          <TouchableOpacity style={styles.actionCell} onPress={() => handleViewReport(item)}>
+            <Text style={[styles.actionCellText, { color: '#0f766e' }]}>View</Text>
           </TouchableOpacity>
           {canEdit ? (
-            <TouchableOpacity style={styles.editBtn} onPress={() => openEdit(item)}>
-              <Ionicons name="create-outline" size={16} color="#1e40af" />
-              <Text style={styles.editText}>Edit</Text>
+            <TouchableOpacity style={styles.actionCell} onPress={() => openEdit(item)}>
+              <Text style={[styles.actionCellText, { color: '#1e40af' }]}>Edit</Text>
             </TouchableOpacity>
           ) : null}
           {canDelete ? (
-            <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(item)}>
-              <Ionicons name="trash-outline" size={16} color="#dc2626" />
-              <Text style={styles.deleteText}>Delete</Text>
+            <TouchableOpacity style={styles.actionCell} onPress={() => handleDelete(item)}>
+              <Text style={[styles.actionCellText, { color: '#dc2626' }]}>Delete</Text>
             </TouchableOpacity>
           ) : null}
           {canLock ? (
-            <TouchableOpacity style={styles.lockBtn} onPress={() => toggleLock(item)}>
-              <Ionicons
-                name={isLocked ? 'lock-open-outline' : 'lock-closed-outline'}
-                size={16}
-                color="#0f172a"
-              />
-              <Text style={styles.lockText}>{isLocked ? 'Unlock' : 'Lock'}</Text>
+            <TouchableOpacity style={styles.actionCell} onPress={() => toggleLock(item)}>
+              <Text style={[styles.actionCellText, { color: '#0f172a' }]}>
+                {isLocked ? 'Unlock' : 'Lock'}
+              </Text>
             </TouchableOpacity>
           ) : null}
         </View>
@@ -675,7 +688,7 @@ export default function ManageResultsScreen() {
           ) : null}
         </Text>
 
-        {(isAdmin || isTeacher) && classId ? (
+        {isAdmin && classId ? (
           <View style={styles.bulkBar}>
             <TouchableOpacity style={styles.bulkBtn} onPress={selectAll}>
               <Text style={styles.bulkBtnText}>Select All</Text>
@@ -982,6 +995,31 @@ const styles = StyleSheet.create({
   },
   meta: { fontSize: 13, color: '#64748b', marginTop: 2 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  cardHeaderText: { flex: 1, minWidth: 0 },
+  metaSmall: {
+    fontSize: 12,
+    color: '#94a3b8',
+    marginTop: 2,
+    fontFamily: 'PlusJakartaSans_400Regular',
+  },
+  actionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    borderTopWidth: 1,
+    borderTopColor: '#e2e8f0',
+    marginTop: 4,
+  },
+  actionCell: {
+    flexGrow: 1,
+    minWidth: '25%',
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionCellText: {
+    fontSize: 13,
+    fontFamily: 'PlusJakartaSans_600SemiBold',
+  },
   cardSelected: {
     borderColor: '#1e40af',
     borderWidth: 2,
