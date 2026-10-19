@@ -916,36 +916,20 @@ tbody tr:nth-child(even){background:var(--primary-lighter);}
 </body></html>`;
 }
 
-/** Single print — opens A4 web layout (Save as PDF from browser) */
-export function printReport(report: PreparedReport) {
-  openPrintWindow([report], 'Report Card');
-}
 
-/** Bulk print — same as web printSelectedStudents */
-export function printReports(reports: PreparedReport[]) {
-  openPrintWindow(reports, 'Bulk Report Printing');
-}
-
-function openPrintWindow(reports: PreparedReport[], title: string) {
-  if (typeof window === 'undefined') {
-    throw { message: 'Printing is only available in the browser.' };
-  }
+/** Build full print document HTML */
+export function buildPrintDocument(
+  reports: PreparedReport[],
+  title: string
+): string {
   if (!reports.length) {
     throw { message: 'No results selected.' };
   }
-
-  const primary =
-    reports[0]?.school?.primary_color || '#1a3d7c';
+  const primary = reports[0]?.school?.primary_color || '#1a3d7c';
   const cards = reports
     .map((r) => buildPrintReportHTML(r, { cardOnly: true }))
     .join('\n');
-
-  const win = window.open('', '_blank', 'noopener,noreferrer,width=900,height=1200');
-  if (!win) {
-    throw { message: 'Pop-up blocked. Allow pop-ups to print reports.' };
-  }
-
-  win.document.write(`<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html><head>
 <meta charset="utf-8"/>
 <title>${title}</title>
@@ -956,14 +940,146 @@ function openPrintWindow(reports: PreparedReport[], title: string) {
   <button onclick="window.print()">PRINT ${
     reports.length > 1 ? 'ALL REPORTS' : 'REPORT CARD'
   }</button>
-  <p style="font-size:12px;color:#666;margin-top:8px;">Use your browser Print → Save as PDF for a 1-page A4 sheet per student.</p>
+  <p style="font-size:12px;color:#666;margin-top:8px;">
+    Print → Save as PDF for a 1-page A4 sheet per student.
+  </p>
 </div>
 ${cards}
-</body></html>`);
-  win.document.close();
-  setTimeout(() => {
+<script>
+  // Auto-trigger print after fonts settle (user can cancel)
+  window.addEventListener('load', function() {
+    setTimeout(function(){ try { window.focus(); } catch(e) {} }, 200);
+  });
+</script>
+</body></html>`;
+}
+
+/**
+ * Print without relying on pop-ups:
+ * 1) Hidden iframe + contentWindow.print()  (best)
+ * 2) Blob URL in same tab / new tab fallback
+ */
+export function printViaIframe(html: string): void {
+  if (typeof document === 'undefined') {
+    throw { message: 'Printing is only available in the browser.' };
+  }
+
+  const iframe = document.createElement('iframe');
+  iframe.setAttribute('title', 'CampusOS Print');
+  iframe.style.position = 'fixed';
+  iframe.style.right = '0';
+  iframe.style.bottom = '0';
+  iframe.style.width = '0';
+  iframe.style.height = '0';
+  iframe.style.border = '0';
+  iframe.style.opacity = '0';
+  iframe.style.pointerEvents = 'none';
+  document.body.appendChild(iframe);
+
+  const doc = iframe.contentDocument || iframe.contentWindow?.document;
+  if (!doc) {
+    document.body.removeChild(iframe);
+    throw { message: 'Could not create print frame.' };
+  }
+
+  doc.open();
+  doc.write(html);
+  doc.close();
+
+  const cleanup = () => {
     try {
-      win.focus();
+      if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
     } catch {}
-  }, 300);
+  };
+
+  const doPrint = () => {
+    try {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+    } catch (e) {
+      cleanup();
+      throw e;
+    }
+    // Remove after print dialog interaction
+    setTimeout(cleanup, 60_000);
+  };
+
+  // Wait for images/fonts
+  setTimeout(doPrint, 400);
+}
+
+/** Open or fill a pre-opened window; fallback to iframe print */
+export function deliverPrintHtml(
+  html: string,
+  preOpened?: Window | null
+): void {
+  if (typeof window === 'undefined') {
+    throw { message: 'Printing is only available in the browser.' };
+  }
+
+  // Prefer writing into a window that was opened synchronously on click
+  if (preOpened && !preOpened.closed) {
+    try {
+      preOpened.document.open();
+      preOpened.document.write(html);
+      preOpened.document.close();
+      setTimeout(() => {
+        try {
+          preOpened.focus();
+          preOpened.print();
+        } catch {}
+      }, 400);
+      return;
+    } catch {
+      // fall through
+    }
+  }
+
+  // Iframe print — no pop-up needed
+  try {
+    printViaIframe(html);
+    return;
+  } catch {
+    // fall through
+  }
+
+  // Blob URL fallback
+  const blob = new Blob([html], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+/** Call this FIRST on button click (before await) to avoid pop-up block */
+export function openPrintPlaceholder(title = 'Preparing Reports...'): Window | null {
+  if (typeof window === 'undefined') return null;
+  const win = window.open('', '_blank');
+  if (!win) return null;
+  win.document.write(`<!DOCTYPE html><html><head><title>${title}</title>
+<style>
+body{font-family:Arial,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;background:#f5f5f5;margin:0;}
+.spinner{width:48px;height:48px;border:5px solid #ddd;border-top:5px solid #1a3d7c;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 12px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+p{color:#444;font-size:14px;}
+</style></head><body><div><div class="spinner"></div><p>Preparing reports…</p></div></body></html>`);
+  win.document.close();
+  return win;
+}
+
+/** Single print — A4 web layout (iframe / Save as PDF) */
+export function printReport(report: PreparedReport, preOpened?: Window | null) {
+  const html = buildPrintDocument([report], 'Report Card');
+  deliverPrintHtml(html, preOpened);
+}
+
+/** Bulk print */
+export function printReports(reports: PreparedReport[], preOpened?: Window | null) {
+  const html = buildPrintDocument(reports, 'Bulk Report Printing');
+  deliverPrintHtml(html, preOpened);
 }
