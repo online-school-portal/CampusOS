@@ -263,7 +263,8 @@ export async function prepareReportData(
   return prepared;
 }
 
-/** Exact web report stylesheet + structure */
+
+/** Mobile-first report card — stacked sections, no SN overlap */
 export function buildWebReportHTML(report: PreparedReport): string {
   const {
     row,
@@ -284,7 +285,6 @@ export function buildWebReportHTML(report: PreparedReport): string {
   const primary = school.primary_color || '#1a3d7c';
   const primaryLight = lightenColor(primary, 0.72);
   const primaryLighter = lightenColor(primary, 0.88);
-  const isCompact = results.length > 15;
 
   const daysOpened = attendance.days_opened ?? 0;
   const daysPresent = attendance.days_present ?? 0;
@@ -295,21 +295,7 @@ export function buildWebReportHTML(report: PreparedReport): string {
   const teacherComment = row.teacher_comment || '';
   const headmasterComment = row.headmaster_comment || '';
 
-  const theadHtml = `
-    <thead>
-      <tr>
-        <th rowspan="2" style="text-align:left;">Subjects</th>
-        <th colspan="${config.parts.length}">Continuous Assessment</th>
-        <th rowspan="2">Total</th>
-        <th rowspan="2">Grade</th>
-        <th rowspan="2">Comments</th>
-      </tr>
-      <tr class="sub-head">
-        ${config.parts.map((p) => `<th>${p.label}</th>`).join('')}
-      </tr>
-    </thead>`;
-
-  const rowsHtml = results
+  const subjectRows = results
     .map((subject: any) => {
       let total = 0;
       const caCells = config.parts
@@ -321,28 +307,23 @@ export function buildWebReportHTML(report: PreparedReport): string {
         .join('');
       const grade = calculateReportGrade(total);
       return `<tr>
-        <td class="domain-label">${subject.subject_name || ''}</td>
+        <td class="subj">${subject.subject_name || ''}</td>
         ${caCells}
-        <td class="domain-label">${total}</td>
+        <td class="bold">${total}</td>
         <td>${grade}</td>
         <td class="italic">${getComment(grade)}</td>
       </tr>`;
     })
     .join('');
 
-  const summaryRowHtml = `
-    <tr class="dy-summary-row">
-      <td>Overall Total</td>
-      <td colspan="${config.parts.length}">${totalMarks}</td>
-      <td>${average}%</td>
-      <td>${overallGrade}</td>
-      <td class="italic">${getComment(overallGrade)}</td>
-    </tr>`;
+  const caHeaders = config.parts
+    .map((p) => `<th>${p.label}</th>`)
+    .join('');
 
   const domainRows = (obj: Record<string, any>) => {
     const entries = Object.entries(obj || {});
     if (!entries.length) {
-      return `<tr><td colspan="6" class="text-center">No data</td></tr>`;
+      return `<tr><td colspan="6" class="muted">No data</td></tr>`;
     }
     return entries
       .map(([activity, score]) => {
@@ -350,7 +331,7 @@ export function buildWebReportHTML(report: PreparedReport): string {
           .map((val) => `<td>${Number(score) === val ? '✔' : ''}</td>`)
           .join('');
         return `<tr>
-          <td class="domain-label">${formatName(activity)}</td>
+          <td class="subj">${formatName(activity)}</td>
           ${cols}
         </tr>`;
       })
@@ -365,393 +346,389 @@ export function buildWebReportHTML(report: PreparedReport): string {
   return `<!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8" />
-  <title>Report - ${row.students?.full_name || 'Student'}</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
-  <style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Report - ${row.students?.full_name || 'Student'}</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
+<style>
 :root{
-  --primary-color:${primary};
+  --primary:${primary};
   --primary-light:${primaryLight};
   --primary-lighter:${primaryLighter};
 }
-*{box-sizing:border-box;}
-body {
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  background: #e0e0e0;
-  margin: 0;
-  padding: 10px;
-  color: #000;
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{
+  margin:0;
+  padding:12px;
+  font-family:'Plus Jakarta Sans',system-ui,sans-serif;
+  background:#e8ecf1;
+  color:#0f172a;
+  font-size:13px;
+  line-height:1.35;
 }
-.report-card {
-  background:
-    linear-gradient(rgba(255,255,255,0.92), rgba(255,255,255,0.92)),
-    repeating-linear-gradient(0deg, rgba(0,0,0,0.015) 0px, rgba(0,0,0,0.015) 1px, transparent 1px, transparent 3px);
-  width: 190mm;
-  max-width: 100%;
-  min-height: 277mm;
-  overflow: visible;
-  margin: auto;
-  padding: 6mm;
-  box-sizing: border-box;
-  border: 2px solid var(--primary-color);
-  outline: 4px double var(--primary-color);
-  outline-offset: -8px;
-  position: relative;
-  box-shadow: 0 0 10px rgba(0,0,0,0.15);
+.toolbar{
+  display:flex;
+  justify-content:center;
+  gap:10px;
+  margin-bottom:12px;
 }
-.report-card::before {
-  content: "";
-  position: absolute;
-  width: 300px;
-  height: 300px;
-  border: 8px double color-mix(in srgb, var(--primary-color) 8%, transparent);
-  border-radius: 50%;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 0;
-  pointer-events: none;
+.toolbar button{
+  background:var(--primary);
+  color:#fff;
+  border:none;
+  border-radius:10px;
+  padding:12px 20px;
+  font-weight:700;
+  font-size:14px;
+  cursor:pointer;
+  width:100%;
+  max-width:320px;
 }
-.report-card > * { position: relative; z-index: 1; }
-.header-container {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 10px;
-  border-bottom: 2px solid var(--primary-color);
-  padding-bottom: 10px;
+.card{
+  background:#fff;
+  border-radius:14px;
+  border:2px solid var(--primary);
+  box-shadow:0 4px 20px rgba(0,0,0,.08);
+  overflow:hidden;
+  max-width:480px;
+  margin:0 auto;
 }
-.logo {
-  width: 80px;
-  height: 80px;
-  border: 1px solid var(--primary-color);
-  background: #fff;
-  flex-shrink: 0;
+/* HEADER — stacked, SN never overlaps name */
+.header{
+  padding:14px 14px 10px;
+  border-bottom:2px solid var(--primary);
+  background:linear-gradient(180deg,var(--primary-lighter),#fff);
 }
-.logo img { width: 100%; height: 100%; object-fit: contain; }
-.serial-number {
-  position: absolute;
-  top: 8px;
-  right: 12px;
-  font-size: 11px;
-  font-weight: bold;
-  color: #000;
-  letter-spacing: 1px;
-  background: rgba(255,255,255,0.7);
-  padding: 2px 6px;
-  border: 1px solid #000;
+.header-top{
+  display:flex;
+  align-items:center;
+  gap:12px;
 }
-.header-text { text-align: center; flex: 1; }
-.school-name {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 20px;
-  font-weight: 800;
-  margin: 0;
-  color: #444;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  line-height: 1.2;
+.logo{
+  width:56px;
+  height:56px;
+  border:1.5px solid var(--primary);
+  border-radius:10px;
+  background:#fff;
+  flex-shrink:0;
+  overflow:hidden;
 }
-.motto {
-  font-size: 12px;
-  font-weight: bold;
-  font-style: italic;
-  margin: 2px 0;
-  color: #444;
+.logo img{width:100%;height:100%;object-fit:contain;}
+.school-block{flex:1;min-width:0;}
+.school-name{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:15px;
+  font-weight:700;
+  margin:0;
+  color:#1e293b;
+  text-transform:uppercase;
+  letter-spacing:.5px;
+  word-break:break-word;
 }
-.address {
-  font-size: 11px;
-  margin: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #444;
+.motto{
+  font-size:11px;
+  font-style:italic;
+  font-weight:600;
+  color:#64748b;
+  margin:3px 0 0;
 }
-.report-banner {
-  background: var(--primary-color);
-  color: white;
-  padding: 6px;
-  font-weight: bold;
-  font-size: 12px;
-  margin: 15px 0;
-  text-align: center;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  border-top: 2px solid var(--primary-color);
-  border-bottom: 2px solid var(--primary-color);
+.address{
+  font-size:10px;
+  color:#64748b;
+  margin:2px 0 0;
+  text-transform:uppercase;
 }
-.info-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  border: 1.5px solid var(--primary-color);
-  margin-bottom: 15px;
-  background: rgba(255,255,255,0.75);
+.sn-row{
+  display:flex;
+  justify-content:flex-end;
+  margin-top:8px;
 }
-.info-item {
-  display: flex;
-  border-right: 1px solid var(--primary-color);
-  border-bottom: 1px solid var(--primary-color);
+.sn{
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:1px;
+  border:1px solid #0f172a;
+  padding:3px 8px;
+  border-radius:6px;
+  background:#fff;
 }
-.label {
-  width: 120px;
-  padding: 3px 5px;
-  font-weight: bold;
-  font-size: 10px;
-  background: var(--primary-lighter);
-  border-right: 1px solid var(--primary-color);
-  text-transform: uppercase;
-  color: var(--primary-color);
+.banner{
+  background:var(--primary);
+  color:#fff;
+  text-align:center;
+  padding:8px 10px;
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
 }
-.value {
-  padding: 4px 8px;
-  font-size: 11px;
-  font-weight: 600;
+/* Student summary chips */
+.summary{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:1px;
+  background:var(--primary);
+  border-bottom:1px solid var(--primary);
 }
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 10px;
-  margin-bottom: 15px;
-  background: white;
+.summary .cell{
+  background:#fff;
+  padding:8px 10px;
 }
-th, td {
-  border: 1.5px solid var(--primary-color);
-  padding: 3px;
+.summary .k{
+  font-size:9px;
+  font-weight:700;
+  color:var(--primary);
+  text-transform:uppercase;
+  letter-spacing:.4px;
 }
-th {
-  background: var(--primary-light);
-  color: var(--primary-color);
-  text-transform: uppercase;
+.summary .v{
+  font-size:12px;
+  font-weight:700;
+  margin-top:2px;
+  word-break:break-word;
 }
-.sub-head th { background: var(--primary-lighter); }
-td { text-align: center; font-weight: 600; }
-td:first-child, .domain-label { text-align: left; }
-tbody tr:nth-child(even) { background: var(--primary-lighter); }
-.italic { font-style: italic; }
-.columns { display: flex; gap: 15px; }
-.left-col { flex: 2.2; }
-.right-col { flex: 1; }
-.section-title {
-  background: var(--primary-color);
-  color: white;
-  font-size: 11px;
-  font-weight: bold;
-  text-align: center;
-  padding: 4px;
-  text-transform: uppercase;
+.summary .wide{grid-column:1 / -1;}
+/* Sections */
+.section{padding:12px 12px 4px;}
+.section-title{
+  background:var(--primary);
+  color:#fff;
+  font-size:11px;
+  font-weight:700;
+  text-align:center;
+  padding:6px 8px;
+  text-transform:uppercase;
+  letter-spacing:.5px;
+  border-radius:8px 8px 0 0;
+  margin:0;
 }
-.attendance-insight {
-  font-size: 11px;
-  padding: 10px 12px;
-  border: 1.5px solid var(--primary-color);
-  background: rgba(255, 255, 255, 0.85);
-  text-align: center;
-  line-height: 1.4;
-  margin-top: 2px;
-  margin-bottom: 10px;
-  font-style: italic;
-  font-weight: 600;
-  letter-spacing: 0.2px;
-  border-radius: 2px;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary-color) 10%, transparent);
-  position: relative;
+.table-wrap{
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+  border:1.5px solid var(--primary);
+  border-top:none;
+  border-radius:0 0 8px 8px;
+  margin-bottom:10px;
 }
-.attendance-insight::before {
-  content: "REMARK";
-  position: absolute;
-  top: -7px;
-  left: 10px;
-  background: #fff;
-  padding: 0 5px;
-  font-size: 9px;
-  font-weight: bold;
-  color: var(--primary-color);
-  letter-spacing: 1px;
+table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:11px;
+  min-width:100%;
 }
-.comment-section {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  border: 1.5px solid var(--primary-color);
-  font-weight: bold;
+th,td{
+  border:1px solid color-mix(in srgb,var(--primary) 35%,#ccc);
+  padding:6px 4px;
+  text-align:center;
 }
-.comment-box {
-  padding: 8px;
-  border-right: 1.5px solid var(--primary-color);
-  font-size: 10px;
-  min-height: 60px;
-  background: #fff;
+th{
+  background:var(--primary-light);
+  color:var(--primary);
+  text-transform:uppercase;
+  font-size:10px;
+  font-weight:700;
 }
-.comment-box:last-child { border-right: none; }
-.signature-area {
-  border-top: 2px solid var(--primary-color);
-  padding: 10px;
-  text-align: center;
-  font-size: 11px;
-  background: rgba(255,255,255,0.6);
-  margin-top: 10px;
+td.subj,th.subj{text-align:left;padding-left:8px;}
+td.bold{font-weight:800;}
+td.italic{font-style:italic;font-size:10px;}
+tbody tr:nth-child(even){background:var(--primary-lighter);}
+.foot-row{background:var(--primary-lighter)!important;font-weight:800;}
+.muted{color:#94a3b8;font-style:italic;}
+/* Attendance remark */
+.remark{
+  margin:0 0 10px;
+  padding:10px 12px;
+  border:1.5px solid var(--primary);
+  border-radius:8px;
+  font-size:11px;
+  font-style:italic;
+  font-weight:600;
+  text-align:center;
+  color:#334155;
+  background:var(--primary-lighter);
 }
-.dy-summary-row { font-weight: 800; background: var(--primary-lighter) !important; }
-.no-print { text-align: center; padding: 16px; }
-.no-print button {
-  display: inline-block;
-  padding: 10px 25px;
-  border: none;
-  font-weight: bold;
-  border-radius: 4px;
-  cursor: pointer;
-  background: var(--primary-color);
-  color: #fff;
+/* Comments stacked */
+.comment{
+  border:1.5px solid var(--primary);
+  border-radius:8px;
+  padding:10px;
+  margin-bottom:8px;
+  background:#fff;
 }
-.report-card.compact table { font-size: 9.2px; }
-.report-card.compact th, .report-card.compact td { padding: 2px 3px; line-height: 1.15; }
-@media print {
-  body { background: white !important; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .report-card { box-shadow: none; width: 100%; }
-  .no-print { display: none !important; }
-  @page { size: A4; margin: 10mm; }
+.comment strong{
+  display:block;
+  font-size:10px;
+  color:var(--primary);
+  margin-bottom:4px;
+  text-transform:uppercase;
 }
-@media (max-width: 700px) {
-  .columns { flex-direction: column; }
-  .info-grid { grid-template-columns: 1fr; }
-  .label { width: 100px; }
-  .school-name { font-size: 14px; letter-spacing: 1px; }
-  .report-card { width: 100%; min-height: auto; outline-offset: -4px; }
+.comment p{margin:0;font-size:12px;font-weight:600;}
+/* Signature */
+.sig{
+  text-align:center;
+  padding:12px;
+  border-top:2px solid var(--primary);
+  margin-top:4px;
 }
-  </style>
+.sig strong{font-size:11px;display:block;margin-bottom:8px;}
+.sig img{height:44px;max-width:140px;object-fit:contain;}
+.sig-line{
+  width:160px;
+  border-top:1px solid #000;
+  margin:8px auto 0;
+}
+.footer-note{
+  text-align:center;
+  font-size:10px;
+  color:#94a3b8;
+  padding:8px 12px 14px;
+}
+@media print{
+  body{background:#fff;padding:0;}
+  .toolbar{display:none!important;}
+  .card{box-shadow:none;max-width:none;border-radius:0;}
+  @page{size:A4;margin:10mm;}
+}
+</style>
 </head>
 <body>
-  <div class="no-print">
-    <button onclick="window.print()">PRINT REPORT CARD</button>
+  <div class="toolbar">
+    <button type="button" onclick="window.print()">Print Report Card</button>
   </div>
 
-  <div class="report-card ${isCompact ? 'compact' : ''}">
-    <div class="header-container">
-      <div class="logo">
-        ${
-          school.logo_url
-            ? `<img src="${school.logo_url}" alt="School Logo">`
-            : ''
-        }
+  <div class="card">
+    <div class="header">
+      <div class="header-top">
+        <div class="logo">
+          ${school.logo_url ? `<img src="${school.logo_url}" alt="Logo" />` : ''}
+        </div>
+        <div class="school-block">
+          <h1 class="school-name">${school.name || 'School Name'}</h1>
+          <p class="motto">MOTTO: ${school.motto || 'N/A'}</p>
+          <p class="address">${school.address || ''}</p>
+          <p class="address">TEL: ${school.phone_numbers || school.phone || 'N/A'}</p>
+        </div>
       </div>
-      <div class="header-text">
-        <h1 class="school-name">${school.name || 'School Name'}</h1>
-        <div class="motto">MOTTO: ${school.motto || 'N/A'}</div>
-        <p class="address">${school.address || 'Address not set'}</p>
-        <p class="address" style="font-weight:bold;">TEL: ${
-          school.phone_numbers || school.phone || 'N/A'
-        }</p>
+      <div class="sn-row">
+        <span class="sn">SN: ${row.serial_number || '---'}</span>
       </div>
-      <div class="serial-number">SN: ${row.serial_number || '---'}</div>
     </div>
 
-    <div class="report-banner">CONTINUOUS ASSESSMENT REPORT</div>
+    <div class="banner">Continuous Assessment Report</div>
 
-    <div class="info-grid">
-      <div class="info-item"><div class="label">Name</div><div class="value">${U(
-        row.students?.full_name
-      )}</div></div>
-      <div class="info-item"><div class="label">Student ID</div><div class="value">${U(
-        row.students?.student_id || row.student_id
-      )}</div></div>
-      <div class="info-item"><div class="label">Class</div><div class="value">${U(
-        row.classes?.name || 'N/A'
-      )}</div></div>
-      <div class="info-item"><div class="label">Gender</div><div class="value">${U(
-        row.gender || row.students?.sex || 'N/A'
-      )}</div></div>
-      <div class="info-item"><div class="label">Term</div><div class="value">${U(
-        row.term
-      )}</div></div>
-      <div class="info-item"><div class="label">Academic Session</div><div class="value">${U(
-        row.session || 'N/A'
-      )}</div></div>
-      <div class="info-item"><div class="label">No. in Class</div><div class="value">${U(
-        classSize
-      )}</div></div>
-      <div class="info-item"><div class="label">Position</div><div class="value">${U(
-        position
-      )}</div></div>
+    <div class="summary">
+      <div class="cell wide">
+        <div class="k">Student Name</div>
+        <div class="v">${U(row.students?.full_name)}</div>
+      </div>
+      <div class="cell">
+        <div class="k">Student ID</div>
+        <div class="v">${U(row.students?.student_id || row.student_id)}</div>
+      </div>
+      <div class="cell">
+        <div class="k">Class</div>
+        <div class="v">${U(row.classes?.name || 'N/A')}</div>
+      </div>
+      <div class="cell">
+        <div class="k">Gender</div>
+        <div class="v">${U(row.gender || row.students?.sex || 'N/A')}</div>
+      </div>
+      <div class="cell">
+        <div class="k">Term</div>
+        <div class="v">${U(row.term)}</div>
+      </div>
+      <div class="cell">
+        <div class="k">Session</div>
+        <div class="v">${U(row.session || 'N/A')}</div>
+      </div>
+      <div class="cell">
+        <div class="k">No. in Class</div>
+        <div class="v">${U(classSize)}</div>
+      </div>
+      <div class="cell">
+        <div class="k">Position</div>
+        <div class="v">${U(position)}</div>
+      </div>
     </div>
 
-    <div style="display:flex;gap:15px;flex-wrap:wrap;">
-      <div style="flex:1;min-width:220px;">
-        <div class="section-title">Attendance</div>
+    <div class="section">
+      <h2 class="section-title">Attendance</h2>
+      <div class="table-wrap">
         <table>
-          <thead><tr><th>Days Opened</th><th>Days Present</th><th>Days Absent</th></tr></thead>
-          <tbody style="text-align:center;"><tr>
-            <td>${U(daysOpened)}</td><td>${U(daysPresent)}</td><td>${U(
-    daysAbsent
-  )}</td>
-          </tr></tbody>
-        </table>
-        <div class="attendance-insight">${insight}</div>
-      </div>
-      <div style="flex:1;min-width:220px;">
-        <div class="section-title">Terminal Duration</div>
-        <table>
-          <thead><tr><th>Term Begins</th><th>Term Ends</th><th>Next Term</th></tr></thead>
-          <tbody style="text-align:center;"><tr>
-            <td>${U(termBegins)}</td><td>${U(termEnds)}</td><td>${U(
-    nextTermBegins
-  )}</td>
+          <thead><tr><th>Opened</th><th>Present</th><th>Absent</th></tr></thead>
+          <tbody><tr>
+            <td>${U(daysOpened)}</td>
+            <td>${U(daysPresent)}</td>
+            <td>${U(daysAbsent)}</td>
           </tr></tbody>
         </table>
       </div>
+      <div class="remark">${insight}</div>
     </div>
 
-    <div class="columns">
-      <div class="left-col">
-        <div class="section-title">Academic Progress Summaries (Cognitive)</div>
+    <div class="section">
+      <h2 class="section-title">Terminal Duration</h2>
+      <div class="table-wrap">
         <table>
-          ${theadHtml}
-          <tbody>
-            ${rowsHtml}
-            ${summaryRowHtml}
-          </tbody>
+          <thead><tr><th>Begins</th><th>Ends</th><th>Next Term</th></tr></thead>
+          <tbody><tr>
+            <td>${U(termBegins)}</td>
+            <td>${U(termEnds)}</td>
+            <td>${U(nextTermBegins)}</td>
+          </tr></tbody>
         </table>
-
-        <div class="comment-section">
-          <div class="comment-box">
-            <strong>TEACHER'S COMMENT:</strong><br>${U(teacherComment || '...')}
-          </div>
-          <div class="comment-box">
-            <strong>HEADMASTER'S COMMENT:</strong><br>${U(
-              headmasterComment || '...'
-            )}
-          </div>
-        </div>
-
-        <div class="signature-area">
-          <strong>HEADMASTER'S SIGNATURE:</strong>
-          <div style="margin-top:10px;display:flex;flex-direction:column;align-items:center;">
-            ${
-              school.headmaster_signature_url
-                ? `<img src="${school.headmaster_signature_url}" alt="Signature" style="height:50px;max-width:150px;object-fit:contain;display:block;" />`
-                : ''
-            }
-            <div style="border-top:1px solid #000;width:200px;margin-top:5px;"></div>
-          </div>
-        </div>
       </div>
+    </div>
 
-      <div class="right-col">
-        <div class="section-title">Affective Domain</div>
+    <div class="section">
+      <h2 class="section-title">Academic Progress (Cognitive)</h2>
+      <div class="table-wrap">
         <table>
           <thead>
             <tr>
-              <th style="text-align:left;">Behaviour</th>
+              <th class="subj">Subject</th>
+              ${caHeaders}
+              <th>Total</th>
+              <th>Grade</th>
+              <th>Remark</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${subjectRows}
+            <tr class="foot-row">
+              <td class="subj">Overall</td>
+              <td colspan="${config.parts.length}">${totalMarks}</td>
+              <td>${average}%</td>
+              <td>${overallGrade}</td>
+              <td class="italic">${getComment(overallGrade)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2 class="section-title">Affective Domain</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="subj">Behaviour</th>
               <th>100</th><th>85</th><th>75</th><th>65</th><th>55</th>
             </tr>
           </thead>
           <tbody>${domainRows(affective)}</tbody>
         </table>
+      </div>
+    </div>
 
-        <div class="section-title">Psychomotor Domain</div>
+    <div class="section">
+      <h2 class="section-title">Psychomotor Domain</h2>
+      <div class="table-wrap">
         <table>
           <thead>
             <tr>
-              <th style="text-align:left;">Activities</th>
+              <th class="subj">Activity</th>
               <th>100</th><th>85</th><th>75</th><th>65</th><th>55</th>
             </tr>
           </thead>
@@ -759,6 +736,30 @@ tbody tr:nth-child(even) { background: var(--primary-lighter); }
         </table>
       </div>
     </div>
+
+    <div class="section">
+      <h2 class="section-title">Comments</h2>
+      <div class="comment">
+        <strong>Teacher's Comment</strong>
+        <p>${U(teacherComment || '...')}</p>
+      </div>
+      <div class="comment">
+        <strong>Headmaster's Comment</strong>
+        <p>${U(headmasterComment || '...')}</p>
+      </div>
+    </div>
+
+    <div class="sig">
+      <strong>Headmaster's Signature</strong>
+      ${
+        school.headmaster_signature_url
+          ? `<img src="${school.headmaster_signature_url}" alt="Signature" />`
+          : ''
+      }
+      <div class="sig-line"></div>
+    </div>
+
+    <div class="footer-note">CampusOS · Official Result Sheet</div>
   </div>
 </body>
 </html>`;
@@ -767,7 +768,7 @@ tbody tr:nth-child(even) { background: var(--primary-lighter); }
 export function printReport(report: PreparedReport) {
   if (typeof window === 'undefined') return;
   const html = report.html || buildWebReportHTML(report);
-  const w = window.open('', '_blank', 'noopener,noreferrer,width=900,height=1200');
+  const w = window.open('', '_blank', 'noopener,noreferrer,width=420,height=800');
   if (!w) {
     throw { message: 'Pop-up blocked. Allow pop-ups to print the report.' };
   }
