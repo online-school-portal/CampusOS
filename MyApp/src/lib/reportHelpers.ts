@@ -391,22 +391,22 @@ body{
   font-family:'Plus Jakarta Sans',sans-serif;
   background:#e0e0e0;
   margin:0;
-  padding:10px;
+  padding:12px;
   color:#000;
 }
 .report-card{
   background:linear-gradient(rgba(255,255,255,0.92),rgba(255,255,255,0.92)),
     repeating-linear-gradient(0deg,rgba(0,0,0,0.015) 0px,rgba(0,0,0,0.015) 1px,transparent 1px,transparent 3px);
   width:190mm;
-  height:277mm;
-  overflow:hidden;
-  margin:auto;
-  padding:5mm;
+  min-height:277mm;
+  overflow:visible;
+  margin:12px auto;
+  padding:8mm;
   border:2px solid var(--primary-color);
   outline:4px double var(--primary-color);
   outline-offset:-8px;
   position:relative;
-  box-shadow:0 0 10px rgba(0,0,0,0.15);
+  box-shadow:0 0 10px rgba(0,0,0,0.12);
   page-break-after:always;
   break-after:page;
 }
@@ -417,7 +417,7 @@ body{
 .report-card::before{
   content:"";
   position:absolute;
-  width:280px;height:280px;
+  width:300px;height:300px;
   border:8px double color-mix(in srgb,var(--primary-color) 8%,transparent);
   border-radius:50%;
   top:50%;left:50%;
@@ -426,93 +426,108 @@ body{
 }
 .report-card>*{position:relative;z-index:1;}
 .header-container{
-  display:flex;align-items:center;gap:6px;
-  margin-bottom:6px;
+  display:flex;align-items:center;gap:8px;
+  margin-bottom:10px;
   border-bottom:2px solid var(--primary-color);
-  padding-bottom:6px;
+  padding-bottom:10px;
 }
-.logo{width:64px;height:64px;border:1px solid var(--primary-color);background:#fff;flex-shrink:0;}
+.logo{width:72px;height:72px;border:1px solid var(--primary-color);background:#fff;flex-shrink:0;}
 .logo img{width:100%;height:100%;object-fit:contain;}
 .serial-number{
-  position:absolute;top:6px;right:10px;
-  font-size:10px;font-weight:bold;letter-spacing:1px;
+  position:absolute;top:10px;right:12px;
+  font-size:11px;font-weight:bold;letter-spacing:1px;
   background:rgba(255,255,255,0.85);padding:2px 6px;border:1px solid #000;
+  font-family:'Space Grotesk',sans-serif;
 }
-.header-text{text-align:center;flex:1;padding:0 28px;}
+.header-text{text-align:center;flex:1;padding:0 36px;}
 .school-name{
   font-family:'Space Grotesk',sans-serif;
-  font-size:16px;font-weight:800;margin:0;
-  color:#444;text-transform:uppercase;letter-spacing:1.5px;line-height:1.15;
+  font-size:18px;font-weight:800;margin:0;
+  color:#444;text-transform:uppercase;letter-spacing:1.5px;line-height:1.2;
 }
-.motto{font-size:10px;font-weight:bold;font-style:italic;margin:1px 0;color:#444;}
-.address{font-size:9px;margin:0;text-transform:uppercase;letter-spacing:0.4px;color:#444;}
+.motto{font-size:11px;font-weight:bold;font-style:italic;margin:3px 0;color:#444;font-family:'Plus Jakarta Sans',sans-serif;}
+.address{font-size:10px;margin:0;text-transform:uppercase;letter-spacing:0.4px;color:#444;font-family:'Plus Jakarta Sans',sans-serif;}
 .report-banner{
-  background:var(--primary-color);color:#fff;padding:4px;
-  font-weight:bold;font-size:11px;margin:8px 0;text-align:center;
-  text-transform:uppercase;letter-spacing:1.5px;
+  background:var(--primary-color);color:#fff;padding:6px;
+  font-weight:bold;font-size:12px;margin:12px 0;text-align:center;
+  text-transform:uppercase;letter-spacing:2px;
+  font-family:'Space Grotesk',sans-serif;
 }
 .info-grid{
   display:grid;grid-template-columns:1fr 1fr;
   border:1.5px solid var(--primary-color);
-  margin-bottom:8px;background:rgba(255,255,255,0.75);
+  margin-bottom:12px;background:rgba(255,255,255,0.75);
 }
 .info-item{display:flex;border-right:1px solid var(--primary-color);border-bottom:1px solid var(--primary-color);}
 .label{
-  width:100px;padding:2px 4px;font-weight:bold;font-size:9px;
+  width:110px;padding:4px 6px;font-weight:bold;font-size:10px;
   background:var(--primary-lighter);border-right:1px solid var(--primary-color);
   text-transform:uppercase;color:var(--primary-color);
+  font-family:'Plus Jakarta Sans',sans-serif;
 }
-.value{padding:2px 6px;font-size:10px;font-weight:600;}
-table{width:100%;border-collapse:collapse;font-size:9px;margin-bottom:6px;background:#fff;}
-th,td{border:1.2px solid var(--primary-color);padding:2px;}
-th{background:var(--primary-light);color:var(--primary-color);text-transform:uppercase;}
+.value{padding:4px 8px;font-size:11px;font-weight:600;font-family:'Plus Jakarta Sans',sans-serif;}
+table{width:100%;border-collapse:collapse;font-size:10px;margin-bottom:10px;background:#fff;font-family:'Plus Jakarta Sans',sans-serif;}
+th,td{border:1.5px solid var(--primary-color);padding:4px 3px;}
+th{background:var(--primary-light);color:var(--primary-color);text-transform:uppercase;font-family:'Space Grotesk',sans-serif;font-size:10px;}
 .sub-head th{background:var(--primary-lighter);}
 td{text-align:center;font-weight:600;}
 td:first-child,.domain-label{text-align:left;}
 tbody tr:nth-child(even){background:var(--primary-lighter);}
 .italic{font-style:italic;}
-.columns{display:flex;gap:10px;}
+.columns{display:flex;gap:14px;}
 .left-col{flex:2.2;}
 .right-col{flex:1;}
 .section-title{
-  background:var(--primary-color);color:#fff;font-size:10px;font-weight:bold;
-  text-align:center;padding:3px;text-transform:uppercase;
+  background:var(--primary-color);color:#fff;font-size:11px;font-weight:bold;
+  text-align:center;padding:5px;text-transform:uppercase;
+  font-family:'Space Grotesk',sans-serif;
 }
 .attendance-insight{
-  font-size:9px;padding:6px 8px;border:1.2px solid var(--primary-color);
-  background:rgba(255,255,255,0.85);text-align:center;line-height:1.3;
-  margin-top:2px;margin-bottom:6px;font-style:italic;font-weight:600;
-  position:relative;
+  font-size:11px;padding:10px 12px;border:1.5px solid var(--primary-color);
+  background:rgba(255,255,255,0.85);text-align:center;line-height:1.4;
+  margin-top:2px;margin-bottom:10px;font-style:italic;font-weight:600;
+  position:relative;font-family:'Plus Jakarta Sans',sans-serif;
 }
 .attendance-insight::before{
-  content:"REMARK";position:absolute;top:-6px;left:8px;
-  background:#fff;padding:0 4px;font-size:8px;font-weight:bold;
+  content:"REMARK";position:absolute;top:-7px;left:10px;
+  background:#fff;padding:0 5px;font-size:9px;font-weight:bold;
   color:var(--primary-color);letter-spacing:1px;
+  font-family:'Space Grotesk',sans-serif;
 }
 .comment-section{
   display:grid;grid-template-columns:1fr 1fr;
-  border:1.2px solid var(--primary-color);font-weight:bold;
+  border:1.5px solid var(--primary-color);font-weight:bold;
 }
 .comment-box{
-  padding:5px;border-right:1.2px solid var(--primary-color);
-  font-size:9px;min-height:42px;background:#fff;
+  padding:8px;border-right:1.5px solid var(--primary-color);
+  font-size:10px;min-height:56px;background:#fff;
+  font-family:'Plus Jakarta Sans',sans-serif;
 }
 .comment-box:last-child{border-right:none;}
 .signature-area{
-  border-top:1.5px solid var(--primary-color);padding:6px;
-  text-align:center;font-size:10px;margin-top:6px;
+  border-top:2px solid var(--primary-color);padding:10px;
+  text-align:center;font-size:11px;margin-top:10px;
+  font-family:'Plus Jakarta Sans',sans-serif;
 }
 .dy-summary-row{font-weight:800;background:var(--primary-lighter)!important;}
 .no-print{text-align:center;padding:16px;}
 .no-print button{
-  display:inline-block;padding:10px 24px;border:none;font-weight:bold;
-  border-radius:4px;cursor:pointer;background:var(--primary-color);color:#fff;
+  display:inline-block;padding:12px 28px;border:none;font-weight:bold;
+  border-radius:6px;cursor:pointer;background:var(--primary-color);color:#fff;
+  font-family:'Space Grotesk',sans-serif;font-size:14px;
 }
-.compact table{font-size:8.5px;}
-.compact th,.compact td{padding:1.5px 2px;}
+/* Compact ONLY when many subjects (web: >15) */
+.report-card.compact table{font-size:9.2px;}
+.report-card.compact th,
+.report-card.compact td{padding:2px 3px;line-height:1.15;}
+.report-card.compact .columns{gap:10px;}
+.report-card.compact .comment-box{font-size:9px;padding:6px;min-height:44px;}
+.report-card.compact .attendance-insight{font-size:10px;padding:8px;}
+.report-card.compact .section-title{padding:3px;font-size:10px;}
+.report-card.compact .school-name{font-size:15px;}
 @media print{
   body{background:#fff!important;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-  .report-card{box-shadow:none;width:100%;height:auto;min-height:270mm;outline-offset:-6px;}
+  .report-card{box-shadow:none;width:100%;margin:0;outline-offset:-6px;}
   .no-print{display:none!important;}
   @page{size:A4;margin:8mm;}
 }
@@ -540,7 +555,7 @@ export function buildPrintReportHTML(
   } = report;
 
   const primary = school.primary_color || '#1a3d7c';
-  const isCompact = results.length > 14;
+  const isCompact = results.length > 15;
   const { rows, summary, thead } = subjectRowsHtml(results, config);
 
   const daysOpened = attendance.days_opened ?? 0;
@@ -940,9 +955,6 @@ export function buildPrintDocument(
   <button onclick="window.print()">PRINT ${
     reports.length > 1 ? 'ALL REPORTS' : 'REPORT CARD'
   }</button>
-  <p style="font-size:12px;color:#666;margin-top:8px;">
-    Print → Save as PDF for a 1-page A4 sheet per student.
-  </p>
 </div>
 ${cards}
 <script>
