@@ -753,6 +753,7 @@ export default function ManageResultsScreen() {
         onRequestClose={() => setEditVisible(false)}
       >
         <View style={styles.modalContainer}>
+          <View style={styles.modalSheet}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Edit Result</Text>
             <TouchableOpacity onPress={() => setEditVisible(false)}>
@@ -892,6 +893,7 @@ export default function ManageResultsScreen() {
               </TouchableOpacity>
             </View>
           </ScrollView>
+          </View>
         </View>
       </Modal>
 
@@ -1130,7 +1132,15 @@ const styles = StyleSheet.create({
     marginTop: 40,
     fontSize: 15,
   },
-  modalContainer: { flex: 1, backgroundColor: '#f1f5f9' },
+  modalContainer: { flex: 1, backgroundColor: 'rgba(15,23,42,0.45)' },
+  modalSheet: {
+    flex: 1,
+    marginTop: 36,
+    backgroundColor: '#f1f5f9',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    overflow: 'hidden',
+  },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',

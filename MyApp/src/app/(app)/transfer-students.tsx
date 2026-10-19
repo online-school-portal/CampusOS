@@ -3,9 +3,11 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
   ScrollView,
+  TouchableOpacity,
   Image,
+  Platform,
+  Alert,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { supabase } from '@/lib/supabase';
@@ -20,19 +22,12 @@ export default function TransferStudentsScreen() {
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedStudent, setSelectedStudent] = useState('');
   const [newClass, setNewClass] = useState('');
+  /** Web: transfer entire class when user confirms after picking source class */
+  const [transferEntireClass, setTransferEntireClass] = useState(false);
 
   useEffect(() => {
     loadClasses();
   }, []);
-
-  useEffect(() => {
-    if (selectedClass) {
-      loadStudentsByClass(selectedClass);
-    } else {
-      setStudents([]);
-      setSelectedStudent('');
-    }
-  }, [selectedClass]);
 
   const loadClasses = async () => {
     setLoading(true);
@@ -52,277 +47,348 @@ export default function TransferStudentsScreen() {
 
   const loadStudentsByClass = async (classId: string) => {
     try {
-      const { data: schoolId, error: schoolErr } = await supabase.rpc(
-        'current_user_school_id'
-      );
-      if (schoolErr) throw schoolErr;
-
       const { data, error } = await supabase
         .from('students')
         .select('id, full_name, student_id, class_id, image_url')
-        .eq('school_id', schoolId)
         .eq('class_id', classId)
         .order('full_name');
-
       if (error) throw error;
-      setStudents(data || []);
-      setSelectedStudent('');
+      return data || [];
     } catch (err) {
-      console.log('Load students error:', err);
       showToast(getFriendlyError(err), 'error');
-      setStudents([]);
+      return [];
     }
   };
 
-  const getClassName = (id: string) => {
-    return classes.find((c) => c.id === id)?.name || null;
+  const askTransferEntireClass = (): Promise<boolean> => {
+    if (Platform.OS === 'web') {
+      return Promise.resolve(
+        typeof window !== 'undefined' &&
+          window.confirm('Transfer entire class?\n\nOK = Yes\nCancel = No')
+      );
+    }
+    return new Promise((resolve) => {
+      Alert.alert(
+        'Transfer entire class?',
+        'Move every student in this class to a new class?',
+        [
+          { text: 'No — one student', style: 'cancel', onPress: () => resolve(false) },
+          { text: 'Yes — entire class', onPress: () => resolve(true) },
+        ]
+      );
+    });
   };
 
-  const selectedStudentData = students.find((s) => s.id === selectedStudent);
+  const onSourceClassChange = async (classId: string) => {
+    setSelectedClass(classId);
+    setSelectedStudent('');
+    setNewClass('');
+    setTransferEntireClass(false);
+    setStudents([]);
+
+    if (!classId) return;
+
+    const list = await loadStudentsByClass(classId);
+    if (!list.length) {
+      showToast('No students in this class yet!', 'error');
+      setStudents([]);
+      return;
+    }
+
+    const entire = await askTransferEntireClass();
+    setTransferEntireClass(entire);
+    setStudents(list);
+
+    if (entire) {
+      setSelectedStudent('');
+      showToast('Entire class selected. Choose the new class.', 'info');
+    }
+  };
 
   const resetForm = () => {
     setSelectedClass('');
     setSelectedStudent('');
     setNewClass('');
     setStudents([]);
+    setTransferEntireClass(false);
+  };
+
+  const doTransferStudent = async (studentId: string, newClassId: string) => {
+    const { error } = await supabase
+      .from('students')
+      .update({ class_id: newClassId })
+      .eq('id', studentId);
+    if (error) throw error;
+  };
+
+  const doTransferClass = async (oldClassId: string, newClassId: string) => {
+    const { error } = await supabase
+      .from('students')
+      .update({ class_id: newClassId })
+      .eq('class_id', oldClassId);
+    if (error) throw error;
   };
 
   const handleTransfer = async () => {
-    if (!selectedStudent || !newClass) {
-      showToast('Please select a student and a new class', 'error');
+    if (!newClass) {
+      showToast('Please select the new class.', 'error');
       return;
     }
-
+    if (!transferEntireClass && !selectedStudent) {
+      showToast('Please select a student.', 'error');
+      return;
+    }
     if (selectedClass === newClass) {
       showToast('New class must be different from current class', 'error');
       return;
     }
 
     setTransferring(true);
-
     try {
-      const { error } = await supabase
-        .from('students')
-        .update({
-          class_id: newClass,
-          student_class: getClassName(newClass),
-        })
-        .eq('id', selectedStudent);
-
-      if (error) throw error;
-
-      const studentName = selectedStudentData?.full_name || 'Student';
-      showToast(`${studentName} transferred successfully`, 'success');
+      if (transferEntireClass) {
+        await doTransferClass(selectedClass, newClass);
+        showToast('Entire class transferred successfully.', 'success');
+      } else {
+        await doTransferStudent(selectedStudent, newClass);
+        showToast('Student transferred successfully.', 'success');
+      }
       resetForm();
-    } catch (err: any) {
+    } catch (err) {
       showToast(getFriendlyError(err), 'error');
     } finally {
       setTransferring(false);
     }
   };
 
+  const selectedStudentData = students.find((s) => s.id === selectedStudent);
+
   if (loading) {
-    return <LoadingSpinner message="Loading classes..." fullScreen={false} />;
+    return <LoadingSpinner message="Loading..." fullScreen={false} />;
   }
 
   return (
-    <View style={styles.container}>
+    <View style={styles.page}>
       {transferring ? (
-        <LoadingSpinner visible={true} message="Transferring student..." />
+        <LoadingSpinner
+          visible
+          message={
+            transferEntireClass
+              ? 'Transferring class...'
+              : 'Transferring student...'
+          }
+        />
       ) : null}
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={styles.header}>Transfer Students</Text>
 
-        <Text style={styles.label}>Current Class</Text>
-        <View style={styles.pickerWrapper}>
-          <Picker
-            selectedValue={selectedClass}
-            onValueChange={(val) => {
-              setSelectedClass(val);
-              setSelectedStudent('');
-              setNewClass('');
-            }}
-            style={styles.picker}
-          >
-            <Picker.Item label="Select current class" value="" color="#94a3b8" />
-            {classes.map((cls) => (
-              <Picker.Item key={cls.id} label={cls.name} value={cls.id} />
-            ))}
-          </Picker>
-        </View>
-
-        <Text style={styles.label}>Select Student</Text>
-        <View style={styles.pickerWrapper}>
-          <Picker
-            selectedValue={selectedStudent}
-            onValueChange={setSelectedStudent}
-            style={styles.picker}
-            enabled={!!selectedClass && students.length > 0}
-          >
-            <Picker.Item
-              label={
-                !selectedClass
-                  ? 'Select class first'
-                  : students.length === 0
-                  ? 'No students in this class'
-                  : 'Select student'
-              }
-              value=""
-              color="#94a3b8"
-            />
-            {students.map((student) => (
-              <Picker.Item
-                key={student.id}
-                label={`${student.full_name} (${student.student_id || 'N/A'})`}
-                value={student.id}
-              />
-            ))}
-          </Picker>
-        </View>
-
-        {/* Show selected student with photo */}
-        {selectedStudentData ? (
-          <View style={styles.studentPreview}>
-            {selectedStudentData.image_url ? (
-              <Image
-                source={{ uri: selectedStudentData.image_url }}
-                style={styles.studentAvatar}
-              />
-            ) : (
-              <View style={[styles.studentAvatar, styles.avatarPlaceholder]}>
-                <Text style={styles.avatarLetter}>
-                  {(selectedStudentData.full_name || '?')[0].toUpperCase()}
-                </Text>
-              </View>
-            )}
-            <View>
-              <Text style={styles.studentName}>{selectedStudentData.full_name}</Text>
-              <Text style={styles.studentId}>
-                ID: {selectedStudentData.student_id || 'N/A'}
-              </Text>
-            </View>
-          </View>
-        ) : null}
-
-        {selectedClass && students.length === 0 ? (
-          <Text style={styles.warning}>No students in this class</Text>
-        ) : null}
-
-        <Text style={styles.label}>Transfer To (New Class)</Text>
-        <View style={styles.pickerWrapper}>
-          <Picker
-            selectedValue={newClass}
-            onValueChange={setNewClass}
-            style={styles.picker}
-          >
-            <Picker.Item label="Select new class" value="" color="#94a3b8" />
-            {classes
-              .filter((cls) => cls.id !== selectedClass)
-              .map((cls) => (
-                <Picker.Item key={cls.id} label={cls.name} value={cls.id} />
+        <View style={styles.formCard}>
+          <Text style={styles.label}>Current Class</Text>
+          <View style={styles.selectBox}>
+            <Picker
+              selectedValue={selectedClass}
+              onValueChange={onSourceClassChange}
+              style={styles.picker}
+            >
+              <Picker.Item label="-- Select Class --" value="" color="#94a3b8" />
+              {classes.map((c) => (
+                <Picker.Item key={c.id} label={c.name} value={c.id} />
               ))}
-          </Picker>
-        </View>
+            </Picker>
+          </View>
 
-        <TouchableOpacity
-          style={[styles.button, transferring ? { opacity: 0.7 } : null]}
-          onPress={handleTransfer}
-          disabled={transferring}
-        >
-          <Text style={styles.buttonText}>Transfer Student</Text>
-        </TouchableOpacity>
+          {transferEntireClass ? (
+            <View style={styles.banner}>
+              <Text style={styles.bannerText}>
+                Entire class selected — all students will move to the new class.
+              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setTransferEntireClass(false);
+                  showToast('Switched to single student mode.', 'info');
+                }}
+              >
+                <Text style={styles.bannerLink}>Switch to single student</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <>
+              <Text style={styles.label}>Student</Text>
+              <View style={styles.selectBox}>
+                <Picker
+                  selectedValue={selectedStudent}
+                  onValueChange={setSelectedStudent}
+                  style={styles.picker}
+                  enabled={!!selectedClass && students.length > 0 && !transferEntireClass}
+                >
+                  <Picker.Item
+                    label={
+                      !selectedClass
+                        ? 'Select class first'
+                        : students.length === 0
+                        ? 'No students'
+                        : '-- Select Student --'
+                    }
+                    value=""
+                    color="#94a3b8"
+                  />
+                  {students.map((s) => (
+                    <Picker.Item
+                      key={s.id}
+                      label={`${s.full_name} (${s.student_id || 'N/A'})`}
+                      value={s.id}
+                    />
+                  ))}
+                </Picker>
+              </View>
+
+              {selectedStudentData ? (
+                <View style={styles.studentPreview}>
+                  {selectedStudentData.image_url ? (
+                    <Image
+                      source={{ uri: selectedStudentData.image_url }}
+                      style={styles.avatar}
+                    />
+                  ) : (
+                    <View style={[styles.avatar, styles.avatarPh]}>
+                      <Text style={styles.avatarLetter}>
+                        {(selectedStudentData.full_name || 'S')[0]}
+                      </Text>
+                    </View>
+                  )}
+                  <View>
+                    <Text style={styles.studentName}>
+                      {selectedStudentData.full_name}
+                    </Text>
+                    <Text style={styles.studentMeta}>
+                      {selectedStudentData.student_id || '—'}
+                    </Text>
+                  </View>
+                </View>
+              ) : null}
+            </>
+          )}
+
+          <Text style={styles.label}>New Class</Text>
+          <View style={styles.selectBox}>
+            <Picker
+              selectedValue={newClass}
+              onValueChange={setNewClass}
+              style={styles.picker}
+              enabled={!!selectedClass}
+            >
+              <Picker.Item label="-- Select New Class --" value="" color="#94a3b8" />
+              {classes
+                .filter((c) => c.id !== selectedClass)
+                .map((c) => (
+                  <Picker.Item key={c.id} label={c.name} value={c.id} />
+                ))}
+            </Picker>
+          </View>
+
+          <TouchableOpacity
+            style={[styles.btn, transferring && { opacity: 0.7 }]}
+            onPress={handleTransfer}
+            disabled={transferring}
+          >
+            <Text style={styles.btnText}>
+              {transferEntireClass ? 'Transfer Entire Class' : 'Transfer Student'}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f1f5f9',
-  },
-  content: {
-    padding: 20,
-    paddingBottom: 60,
-  },
+  page: { flex: 1, backgroundColor: '#f1f5f9' },
+  content: { padding: 16, paddingBottom: 48 },
   header: {
-    fontSize: 24,
+    fontSize: 22,
     fontFamily: 'SpaceGrotesk_700Bold',
     color: '#0f172a',
-    marginBottom: 24,
+    marginBottom: 16,
+  },
+  formCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
   label: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_600SemiBold',
     color: '#334155',
-    marginBottom: 8,
-    marginTop: 8,
+    marginBottom: 6,
+    marginTop: 4,
   },
-  pickerWrapper: {
-    backgroundColor: '#ffffff',
+  selectBox: {
+    backgroundColor: '#f8fafc',
     borderWidth: 1.5,
     borderColor: '#e2e8f0',
-    borderRadius: 12,
-    marginBottom: 16,
+    borderRadius: 10,
+    marginBottom: 12,
     overflow: 'hidden',
   },
-  picker: {
-    height: 50,
+  picker: { height: 48 },
+  banner: {
+    backgroundColor: '#eff6ff',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+  },
+  bannerText: {
+    fontFamily: 'PlusJakartaSans_600SemiBold',
+    color: '#1e40af',
+    fontSize: 13,
+    marginBottom: 6,
+  },
+  bannerLink: {
+    fontFamily: 'PlusJakartaSans_600SemiBold',
+    color: '#0f172a',
+    fontSize: 12,
+    textDecorationLine: 'underline',
   },
   studentPreview: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#eff6ff',
+    marginBottom: 12,
+    padding: 10,
+    backgroundColor: '#f8fafc',
     borderRadius: 12,
-    padding: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#bfdbfe',
   },
-  studentAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: '#e2e8f0',
-  },
-  avatarPlaceholder: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#dbeafe',
-  },
+  avatar: { width: 48, height: 48, borderRadius: 12, backgroundColor: '#e2e8f0' },
+  avatarPh: { justifyContent: 'center', alignItems: 'center', backgroundColor: '#eff6ff' },
   avatarLetter: {
-    fontSize: 18,
     fontFamily: 'SpaceGrotesk_700Bold',
     color: '#1e40af',
+    fontSize: 18,
   },
   studentName: {
+    fontFamily: 'SpaceGrotesk_700Bold',
     fontSize: 15,
-    fontFamily: 'PlusJakartaSans_600SemiBold',
     color: '#0f172a',
   },
-  studentId: {
-    fontSize: 13,
-    color: '#64748b',
-    marginTop: 2,
-  },
-  warning: {
-    color: '#dc2626',
-    fontSize: 13,
-    marginBottom: 12,
+  studentMeta: {
     fontFamily: 'PlusJakartaSans_400Regular',
+    fontSize: 12,
+    color: '#64748b',
   },
-  button: {
+  btn: {
     backgroundColor: '#1e40af',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
-    marginTop: 24,
+    marginTop: 12,
   },
-  buttonText: {
-    color: '#ffffff',
+  btnText: {
+    color: '#fff',
+    fontFamily: 'SpaceGrotesk_700Bold',
     fontSize: 16,
-    fontFamily: 'PlusJakartaSans_700Bold',
   },
 });
