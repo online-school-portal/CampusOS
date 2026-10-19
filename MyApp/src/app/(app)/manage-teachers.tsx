@@ -334,9 +334,14 @@ export default function ManageTeachersScreen() {
             </Text>
           </View>
         )}
-        <View style={{ flex: 1 }}>
-          <Text style={styles.name}>{item.full_name || 'Unknown'}</Text>
-          <Text style={styles.meta}>ID: {item.teacher_id || 'N/A'}</Text>
+        <View style={styles.cardHeaderText}>
+          <Text style={styles.name} numberOfLines={1}>
+            {item.full_name || 'Unknown'}
+          </Text>
+          <Text style={styles.meta}>
+            {item.teacher_id || 'N/A'}
+            {item.subject_specialization ? ` · ${item.subject_specialization}` : ''}
+          </Text>
         </View>
       </View>
 
@@ -426,6 +431,7 @@ export default function ManageTeachersScreen() {
         onRequestClose={() => setEditVisible(false)}
       >
         <View style={styles.modalContainer}>
+          <View style={styles.modalSheet}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Edit Teacher</Text>
             <TouchableOpacity onPress={() => setEditVisible(false)}>
@@ -607,6 +613,7 @@ export default function ManageTeachersScreen() {
               </TouchableOpacity>
             </View>
           </ScrollView>
+          </View>
         </View>
       </Modal>
     </View>
@@ -639,7 +646,7 @@ const styles = StyleSheet.create({
     fontFamily: 'PlusJakartaSans_400Regular',
   },
   countBold: {
-    fontFamily: 'PlusJakartaSans_700Bold',
+    fontFamily: 'SpaceGrotesk_700Bold',
     color: '#0f172a',
   },
   card: {
@@ -674,9 +681,10 @@ const styles = StyleSheet.create({
   },
   name: {
     fontSize: 16,
-    fontFamily: 'PlusJakartaSans_600SemiBold',
+    fontFamily: 'SpaceGrotesk_700Bold',
     color: '#0f172a',
   },
+  cardHeaderText: { flex: 1, minWidth: 0 },
   meta: { fontSize: 13, color: '#64748b', marginTop: 2 },
   cardBody: { gap: 4, marginBottom: 12 },
   label: { fontSize: 13, color: '#64748b' },
@@ -721,7 +729,15 @@ const styles = StyleSheet.create({
     marginTop: 40,
     fontSize: 15,
   },
-  modalContainer: { flex: 1, backgroundColor: '#f1f5f9' },
+  modalContainer: { flex: 1, backgroundColor: 'rgba(15,23,42,0.45)' },
+  modalSheet: {
+    flex: 1,
+    marginTop: 40,
+    backgroundColor: '#f1f5f9',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    overflow: 'hidden',
+  },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -838,7 +854,7 @@ const styles = StyleSheet.create({
   },
   saveText: {
     color: '#fff',
-    fontFamily: 'PlusJakartaSans_700Bold',
+    fontFamily: 'SpaceGrotesk_700Bold',
     fontSize: 15,
   },
 });

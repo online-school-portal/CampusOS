@@ -451,6 +451,6 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#ffffff',
     fontSize: 16,
-    fontFamily: 'PlusJakartaSans_700Bold',
+    fontFamily: 'SpaceGrotesk_700Bold',
   },
 });
