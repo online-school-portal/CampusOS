@@ -12,7 +12,6 @@ import { Ionicons } from '@expo/vector-icons';
 import {
   PreparedReport,
   printReport,
-  buildWebReportHTML,
 } from '@/lib/reportHelpers';
 import { showToast, getFriendlyError } from '@/utils/toast';
 
@@ -23,16 +22,15 @@ type Props = {
 };
 
 /**
- * Renders the SAME HTML/CSS as the web dashboard report card.
- * On web: iframe with srcDoc.
- * On native: opens print/HTML window is limited — still uses HTML string via WebView fallback message.
+ * On-screen: mobile stacked layout (report.html).
+ * Print / PDF: A4 web layout (report.printHtml) — 1 page per student.
  */
 export default function ResultReportModal({ visible, report, onClose }: Props) {
   const { height } = useWindowDimensions();
 
-  const html = useMemo(() => {
+  const mobileHtml = useMemo(() => {
     if (!report) return '';
-    return report.html || buildWebReportHTML(report);
+    return report.html || '';
   }, [report]);
 
   if (!report) return null;
@@ -41,11 +39,14 @@ export default function ResultReportModal({ visible, report, onClose }: Props) {
 
   const handlePrint = () => {
     try {
-      if (Platform.OS === 'web') {
-        printReport(report);
-      } else {
-        showToast('Print is available on web. Showing report layout here.', 'info');
+      if (Platform.OS !== 'web') {
+        showToast(
+          'Open this on web (browser) to print / Save as PDF with the A4 layout.',
+          'info'
+        );
+        return;
       }
+      printReport(report);
     } catch (err) {
       showToast(getFriendlyError(err), 'error');
     }
@@ -69,15 +70,15 @@ export default function ResultReportModal({ visible, report, onClose }: Props) {
             style={[styles.printBtn, { backgroundColor: primary }]}
           >
             <Ionicons name="print-outline" size={20} color="#fff" />
-            <Text style={styles.printText}>Print</Text>
+            <Text style={styles.printText}>Print / PDF</Text>
           </TouchableOpacity>
         </View>
 
         {Platform.OS === 'web' ? (
-          // @ts-ignore — iframe is valid on react-native-web
+          // @ts-ignore
           <iframe
             title="Report Card"
-            srcDoc={html}
+            srcDoc={mobileHtml}
             style={{
               width: '100%',
               height: height - 56,
@@ -89,9 +90,8 @@ export default function ResultReportModal({ visible, report, onClose }: Props) {
           <View style={styles.nativeFallback}>
             <Text style={styles.fallbackTitle}>Report card</Text>
             <Text style={styles.fallbackBody}>
-              Full styled report matches the website when viewed on web (Expo
-              web / browser). Open Manage Results → View on web for the exact
-              layout, or use Print there.
+              Mobile layout is best viewed on web. Use Print / PDF on browser for
+              the official 1-page A4 sheet (same as the website).
             </Text>
             <Text style={styles.fallbackMeta}>
               {report.row?.students?.full_name} · {report.row?.term} ·{' '}
@@ -100,6 +100,9 @@ export default function ResultReportModal({ visible, report, onClose }: Props) {
             <Text style={styles.fallbackMeta}>
               Average {report.average}% · {report.overallGrade} · Position{' '}
               {report.position}
+            </Text>
+            <Text style={styles.fallbackMeta}>
+              Headmaster: {report.headmasterComment}
             </Text>
           </View>
         )}
@@ -139,11 +142,7 @@ const styles = StyleSheet.create({
     fontFamily: 'PlusJakartaSans_700Bold',
     fontSize: 14,
   },
-  nativeFallback: {
-    flex: 1,
-    padding: 24,
-    justifyContent: 'center',
-  },
+  nativeFallback: { flex: 1, padding: 24, justifyContent: 'center' },
   fallbackTitle: {
     fontSize: 20,
     fontFamily: 'SpaceGrotesk_700Bold',
