@@ -31,6 +31,8 @@ import ResultReportModal from '@/components/ResultReportModal';
 import {
   prepareReportData,
   PreparedReport,
+  printReports,
+  resultKey,
 } from '@/lib/reportHelpers';
 
 export default function ManageResultsScreen() {
@@ -74,6 +76,8 @@ export default function ManageResultsScreen() {
 
   const [reportVisible, setReportVisible] = useState(false);
   const [reportData, setReportData] = useState<PreparedReport | null>(null);
+  const [selectedMap, setSelectedMap] = useState<Record<string, any>>({});
+  const selectedCount = Object.keys(selectedMap).length;
 
   useEffect(() => {
     (async () => {
@@ -323,6 +327,161 @@ export default function ManageResultsScreen() {
 
   const caConfig = CA_TYPES[editCaType] || CA_TYPES.standard_20_20_60;
 
+  const toggleSelect = (item: any) => {
+    const key = resultKey(item);
+    setSelectedMap((prev) => {
+      const next = { ...prev };
+      if (next[key]) delete next[key];
+      else next[key] = item;
+      return next;
+    });
+  };
+
+  const selectAll = () => {
+    const next: Record<string, any> = {};
+    results.forEach((item) => {
+      next[resultKey(item)] = item;
+    });
+    setSelectedMap(next);
+  };
+
+  const deselectAll = () => setSelectedMap({});
+
+  const bulkPrint = async () => {
+    const items = Object.values(selectedMap);
+    if (!items.length) {
+      showToast('No results selected.', 'error');
+      return;
+    }
+    if (Platform.OS !== 'web') {
+      showToast('Bulk print works on web — open in browser.', 'info');
+      return;
+    }
+    setBusyMsg('Preparing reports...');
+    setBusy(true);
+    try {
+      const reports: PreparedReport[] = [];
+      for (const item of items) {
+        const data = await prepareReportData(
+          item.student_id,
+          item.class_id,
+          item.term,
+          item.session
+        );
+        reports.push(data);
+      }
+      printReports(reports);
+      showToast(`Prepared ${reports.length} report(s) for print.`, 'success');
+    } catch (err) {
+      showToast(getFriendlyError(err), 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const bulkLock = async (lock: boolean) => {
+    if (!isAdmin) {
+      showToast('Only admins can lock/unlock results.', 'error');
+      return;
+    }
+    const items = Object.values(selectedMap);
+    if (!items.length) {
+      showToast('No results selected.', 'error');
+      return;
+    }
+    setBusyMsg(lock ? 'Locking...' : 'Unlocking...');
+    setBusy(true);
+    try {
+      // Prefer edge function like web; fallback to per-row update
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+      let usedEdge = false;
+      if (token && supabaseUrl) {
+        try {
+          const res = await fetch(`${supabaseUrl}/functions/v1/bulk-lock-results`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              lock,
+              results: items.map((i) => ({
+                student_id: i.student_id,
+                class_id: i.class_id,
+                term: i.term,
+                session: i.session,
+              })),
+            }),
+          });
+          if (res.ok) usedEdge = true;
+        } catch {}
+      }
+      if (!usedEdge) {
+        for (const item of items) {
+          const { error } = await supabase
+            .from('results')
+            .update({ is_locked: lock })
+            .match({
+              student_id: item.student_id,
+              class_id: item.class_id,
+              term: item.term,
+              session: item.session,
+            });
+          if (error) throw error;
+        }
+      }
+      deselectAll();
+      await loadResults();
+      showToast(lock ? 'Selected results locked.' : 'Selected results unlocked.', 'success');
+    } catch (err) {
+      showToast(getFriendlyError(err), 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const bulkDelete = () => {
+    const items = Object.values(selectedMap);
+    if (!items.length) {
+      showToast('No results selected.', 'error');
+      return;
+    }
+    const msg = `Delete ${items.length} selected result(s)?`;
+    const run = async () => {
+      setBusyMsg('Deleting selected...');
+      setBusy(true);
+      try {
+        for (const item of items) {
+          const { error } = await supabase.from('results').delete().match({
+            student_id: item.student_id,
+            class_id: item.class_id,
+            term: item.term,
+            session: item.session,
+          });
+          if (error) throw error;
+        }
+        deselectAll();
+        await loadResults();
+        showToast('Selected results deleted.', 'success');
+      } catch (err) {
+        showToast(getFriendlyError(err), 'error');
+      } finally {
+        setBusy(false);
+      }
+    };
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.confirm(msg)) run();
+      return;
+    }
+    Alert.alert('Delete Selected', msg, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: run },
+    ]);
+  };
+
+
   const handleViewReport = async (item: any) => {
     setBusyMsg('Loading report...');
     setBusy(true);
@@ -372,9 +531,26 @@ export default function ManageResultsScreen() {
     const canEdit = isAdmin || (isTeacher && !isLocked);
     const canDelete = isAdmin || (isTeacher && !isLocked);
     const canLock = isAdmin;
+    const key = resultKey(item);
+    const isSelected = !!selectedMap[key];
 
     return (
-      <View style={styles.card}>
+      <View style={[styles.card, isSelected && styles.cardSelected]}>
+        {isAdmin ? (
+          <TouchableOpacity
+            style={[styles.selectChip, isSelected && styles.selectChipOn]}
+            onPress={() => toggleSelect(item)}
+          >
+            <Ionicons
+              name={isSelected ? 'checkbox' : 'square-outline'}
+              size={18}
+              color={isSelected ? '#fff' : '#1e40af'}
+            />
+            <Text style={[styles.selectChipText, isSelected && { color: '#fff' }]}>
+              {isSelected ? 'Selected' : 'Select'}
+            </Text>
+          </TouchableOpacity>
+        ) : null}
         <View style={styles.cardHeader}>
           {imageUrl ? (
             <Image source={{ uri: imageUrl }} style={styles.avatar} resizeMode="cover" />
@@ -494,7 +670,50 @@ export default function ManageResultsScreen() {
 
         <Text style={styles.count}>
           Results in view: <Text style={styles.countBold}>{results.length}</Text>
+          {selectedCount > 0 ? (
+            <Text style={styles.countBold}> · {selectedCount} selected</Text>
+          ) : null}
         </Text>
+
+        {(isAdmin || isTeacher) && classId ? (
+          <View style={styles.bulkBar}>
+            <TouchableOpacity style={styles.bulkBtn} onPress={selectAll}>
+              <Text style={styles.bulkBtnText}>Select All</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.bulkBtn} onPress={deselectAll}>
+              <Text style={styles.bulkBtnText}>Deselect</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.bulkBtn, styles.bulkPrimary]}
+              onPress={bulkPrint}
+            >
+              <Ionicons name="print-outline" size={14} color="#fff" />
+              <Text style={[styles.bulkBtnText, { color: '#fff' }]}>Print</Text>
+            </TouchableOpacity>
+            {isAdmin ? (
+              <>
+                <TouchableOpacity
+                  style={[styles.bulkBtn, styles.bulkLock]}
+                  onPress={() => bulkLock(true)}
+                >
+                  <Text style={styles.bulkBtnText}>Lock</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.bulkBtn, styles.bulkUnlock]}
+                  onPress={() => bulkLock(false)}
+                >
+                  <Text style={styles.bulkBtnText}>Unlock</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.bulkBtn, styles.bulkDanger]}
+                  onPress={bulkDelete}
+                >
+                  <Text style={[styles.bulkBtnText, { color: '#fff' }]}>Delete</Text>
+                </TouchableOpacity>
+              </>
+            ) : null}
+          </View>
+        ) : null}
 
         <View style={styles.grid}>
           {results.length === 0 ? (
@@ -763,6 +982,54 @@ const styles = StyleSheet.create({
   },
   meta: { fontSize: 13, color: '#64748b', marginTop: 2 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  cardSelected: {
+    borderColor: '#1e40af',
+    borderWidth: 2,
+    backgroundColor: '#eff6ff',
+  },
+  selectChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#eff6ff',
+    marginBottom: 10,
+  },
+  selectChipOn: {
+    backgroundColor: '#1e40af',
+  },
+  selectChipText: {
+    fontSize: 12,
+    fontFamily: 'PlusJakartaSans_600SemiBold',
+    color: '#1e40af',
+  },
+  bulkBar: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 14,
+  },
+  bulkBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#e2e8f0',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  bulkPrimary: { backgroundColor: '#1e40af' },
+  bulkLock: { backgroundColor: '#fef3c7' },
+  bulkUnlock: { backgroundColor: '#d1fae5' },
+  bulkDanger: { backgroundColor: '#dc2626' },
+  bulkBtnText: {
+    fontSize: 12,
+    fontFamily: 'PlusJakartaSans_600SemiBold',
+    color: '#0f172a',
+  },
   viewBtn: {
     flexDirection: 'row',
     alignItems: 'center',
