@@ -431,7 +431,6 @@ export default function ManageTeachersScreen() {
         onRequestClose={() => setEditVisible(false)}
       >
         <View style={styles.modalContainer}>
-          <View style={styles.modalSheet}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Edit Teacher</Text>
             <TouchableOpacity onPress={() => setEditVisible(false)}>
@@ -613,7 +612,6 @@ export default function ManageTeachersScreen() {
               </TouchableOpacity>
             </View>
           </ScrollView>
-          </View>
         </View>
       </Modal>
     </View>
@@ -685,7 +683,12 @@ const styles = StyleSheet.create({
     color: '#0f172a',
   },
   cardHeaderText: { flex: 1, minWidth: 0 },
-  meta: { fontSize: 13, color: '#64748b', marginTop: 2 },
+  meta: {
+    fontSize: 13,
+    color: '#64748b',
+    marginTop: 2,
+    fontFamily: 'PlusJakartaSans_400Regular',
+  },
   cardBody: { gap: 4, marginBottom: 12 },
   label: { fontSize: 13, color: '#64748b' },
   value: {
@@ -726,18 +729,11 @@ const styles = StyleSheet.create({
   empty: {
     textAlign: 'center',
     color: '#64748b',
-    marginTop: 40,
     fontSize: 15,
+  
+    fontFamily: 'PlusJakartaSans_400Regular',
   },
-  modalContainer: { flex: 1, backgroundColor: 'rgba(15,23,42,0.45)' },
-  modalSheet: {
-    flex: 1,
-    marginTop: 40,
-    backgroundColor: '#f1f5f9',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    overflow: 'hidden',
-  },
+  modalContainer: { flex: 1, backgroundColor: '#f1f5f9' },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',

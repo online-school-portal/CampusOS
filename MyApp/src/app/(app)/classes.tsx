@@ -223,5 +223,7 @@ const styles = StyleSheet.create({
     color: '#64748b',
     marginTop: 30,
     fontSize: 15,
+  
+    fontFamily: 'PlusJakartaSans_400Regular',
   },
 });

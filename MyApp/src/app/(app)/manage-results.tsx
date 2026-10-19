@@ -753,7 +753,6 @@ export default function ManageResultsScreen() {
         onRequestClose={() => setEditVisible(false)}
       >
         <View style={styles.modalContainer}>
-          <View style={styles.modalSheet}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Edit Result</Text>
             <TouchableOpacity onPress={() => setEditVisible(false)}>
@@ -893,7 +892,6 @@ export default function ManageResultsScreen() {
               </TouchableOpacity>
             </View>
           </ScrollView>
-          </View>
         </View>
       </Modal>
 
@@ -957,7 +955,7 @@ const styles = StyleSheet.create({
     fontFamily: 'PlusJakartaSans_400Regular',
   },
   countBold: {
-    fontFamily: 'PlusJakartaSans_700Bold',
+    fontFamily: 'SpaceGrotesk_700Bold',
     color: '#0f172a',
   },
   card: {
@@ -992,10 +990,15 @@ const styles = StyleSheet.create({
   },
   name: {
     fontSize: 16,
-    fontFamily: 'PlusJakartaSans_600SemiBold',
+    fontFamily: 'SpaceGrotesk_700Bold',
     color: '#0f172a',
   },
-  meta: { fontSize: 13, color: '#64748b', marginTop: 2 },
+  meta: {
+    fontSize: 13,
+    color: '#64748b',
+    marginTop: 2,
+    fontFamily: 'PlusJakartaSans_400Regular',
+  },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   cardHeaderText: { flex: 1, minWidth: 0 },
   metaSmall: {
@@ -1131,16 +1134,10 @@ const styles = StyleSheet.create({
     color: '#64748b',
     marginTop: 40,
     fontSize: 15,
+  
+    fontFamily: 'PlusJakartaSans_400Regular',
   },
-  modalContainer: { flex: 1, backgroundColor: 'rgba(15,23,42,0.45)' },
-  modalSheet: {
-    flex: 1,
-    marginTop: 36,
-    backgroundColor: '#f1f5f9',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    overflow: 'hidden',
-  },
+  modalContainer: { flex: 1, backgroundColor: '#f1f5f9' },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
