@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import {
   PreparedReport,
   printReport,
+  openPrintPlaceholder,
 } from '@/lib/reportHelpers';
 import { showToast, getFriendlyError } from '@/utils/toast';
 
@@ -46,7 +47,13 @@ export default function ResultReportModal({ visible, report, onClose }: Props) {
         );
         return;
       }
-      printReport(report);
+      // Open placeholder immediately (user gesture) so print is not blocked
+      const win = openPrintPlaceholder('Preparing Report...');
+      printReport(report, win);
+      if (!win) {
+        // iframe path used — still OK
+        showToast('Print dialog opening…', 'info');
+      }
     } catch (err) {
       showToast(getFriendlyError(err), 'error');
     }
