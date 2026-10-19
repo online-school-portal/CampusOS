@@ -82,7 +82,7 @@ export default function ResultReportModal({ visible, report, onClose }: Props) {
               width: '100%',
               height: height - 56,
               border: 'none',
-              background: '#e0e0e0',
+              background: '#e8ecf1',
             }}
           />
         ) : (
@@ -109,7 +109,7 @@ export default function ResultReportModal({ visible, report, onClose }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#e0e0e0' },
+  container: { flex: 1, backgroundColor: '#e8ecf1' },
   toolbar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
