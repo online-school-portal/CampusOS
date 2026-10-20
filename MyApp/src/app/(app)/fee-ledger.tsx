@@ -44,8 +44,8 @@ export default function FeeLedgerScreen() {
   const [classes, setClasses] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
 
-  const [session, setSession] = useState('2025/2026');
-  const [term, setTerm] = useState('First Term');
+  const [session, setSession] = useState('');
+  const [term, setTerm] = useState('');
   const [classId, setClassId] = useState('');
   const [studentId, setStudentId] = useState('');
 
@@ -398,6 +398,7 @@ export default function FeeLedgerScreen() {
           <Text style={styles.label}>Session</Text>
           <View style={styles.selectBox}>
             <Picker selectedValue={session} onValueChange={setSession} style={styles.picker}>
+              <Picker.Item label="Select session" value="" color="#94a3b8" />
               {SESSIONS.map((s) => (
                 <Picker.Item key={s} label={s} value={s} />
               ))}
@@ -406,6 +407,7 @@ export default function FeeLedgerScreen() {
           <Text style={styles.label}>Term</Text>
           <View style={styles.selectBox}>
             <Picker selectedValue={term} onValueChange={setTerm} style={styles.picker}>
+              <Picker.Item label="Select term" value="" color="#94a3b8" />
               {TERMS.map((t) => (
                 <Picker.Item key={t} label={t} value={t} />
               ))}

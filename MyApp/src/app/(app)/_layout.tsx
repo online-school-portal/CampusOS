@@ -266,6 +266,12 @@ function CustomDrawerContent(props: any) {
                 onPress={() => props.navigation.navigate('fee-ledger')}
                 isSub
               />
+              <MenuItem
+                label="Financial Report"
+                icon="stats-chart-outline"
+                onPress={() => props.navigation.navigate('financial-reports')}
+                isSub
+              />
             </View>
           )}
           <MenuItem
@@ -353,6 +359,7 @@ export default function AppLayout() {
       <Drawer.Screen name="fee-types" options={{ title: 'Fee Types' }} />
       <Drawer.Screen name="add-fees" options={{ title: 'Add Fees' }} />
       <Drawer.Screen name="fee-ledger" options={{ title: 'Fee Ledger' }} />
+      <Drawer.Screen name="financial-reports" options={{ title: 'Financial Reports' }} />
       <Drawer.Screen name="credit-tracking" options={{ title: 'Credit Tracking' }} />
     </Drawer>
   );

@@ -26,8 +26,8 @@ export default function AddFeesScreen() {
   const [feeTypes, setFeeTypes] = useState<any[]>([]);
   const [assigned, setAssigned] = useState<any[]>([]);
 
-  const [session, setSession] = useState('2025/2026');
-  const [term, setTerm] = useState('First Term');
+  const [session, setSession] = useState('');
+  const [term, setTerm] = useState('');
   const [classId, setClassId] = useState('');
   const [feeTypeId, setFeeTypeId] = useState('');
   const [amount, setAmount] = useState('');
@@ -155,6 +155,7 @@ export default function AddFeesScreen() {
           <Text style={styles.label}>Session</Text>
           <View style={styles.selectBox}>
             <Picker selectedValue={session} onValueChange={setSession} style={styles.picker}>
+              <Picker.Item label="Select session" value="" color="#94a3b8" />
               {SESSIONS.map((s) => (
                 <Picker.Item key={s} label={s} value={s} />
               ))}
@@ -164,6 +165,7 @@ export default function AddFeesScreen() {
           <Text style={styles.label}>Term</Text>
           <View style={styles.selectBox}>
             <Picker selectedValue={term} onValueChange={setTerm} style={styles.picker}>
+              <Picker.Item label="Select term" value="" color="#94a3b8" />
               {TERMS.map((t) => (
                 <Picker.Item key={t} label={t} value={t} />
               ))}

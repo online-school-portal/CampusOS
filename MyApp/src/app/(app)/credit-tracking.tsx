@@ -69,9 +69,14 @@ export default function CreditTrackingScreen() {
         return;
       }
 
-      // Same edge function pattern as web if available
+      // Same edge function as web dashboard
+      const origin =
+        typeof window !== 'undefined' && window.location?.origin
+          ? window.location.origin
+          : '';
+
       const res = await fetch(
-        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/initialize-credit-payment`,
+        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/initiate-paystack`,
         {
           method: 'POST',
           headers: {
@@ -80,26 +85,29 @@ export default function CreditTrackingScreen() {
           },
           body: JSON.stringify({
             school_id: schoolId,
+            email: session.user.email,
             amount: naira,
+            origin,
           }),
         }
       );
 
       const result = await res.json().catch(() => ({}));
       if (!res.ok) {
-        // Fallback message if edge function not deployed under that name
-        throw result?.message
-          ? { message: result.message }
-          : {
-              message:
-                result?.error ||
-                'Could not start payment. Check initialize-credit-payment function.',
-            };
+        throw {
+          message:
+            result?.error ||
+            result?.message ||
+            'Payment failed. Check CORS allowed origins on initiate-paystack.',
+        };
       }
 
-      if (result?.authorization_url && typeof window !== 'undefined') {
+      if (result?.authorization_url) {
         setPayStatus('Redirecting to payment...');
-        window.location.href = result.authorization_url;
+        setAmount('');
+        if (typeof window !== 'undefined') {
+          window.location.href = result.authorization_url;
+        }
         return;
       }
 
@@ -170,14 +178,7 @@ export default function CreditTrackingScreen() {
           </TouchableOpacity>
           {payStatus ? <Text style={styles.payStatus}>{payStatus}</Text> : null}
         </View>
-
-        <View style={styles.note}>
-          <Text style={styles.noteText}>
-            Note: Recording student fee payments no longer deducts credits from
-            the mobile app. Credits are only used for purchases shown here.
-          </Text>
-        </View>
-      </ScrollView>
+</ScrollView>
     </View>
   );
 }
@@ -263,18 +264,5 @@ const styles = StyleSheet.create({
     fontFamily: 'PlusJakartaSans_400Regular',
     color: '#64748b',
     fontSize: 13,
-  },
-  note: {
-    backgroundColor: '#eff6ff',
-    borderRadius: 12,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#bfdbfe',
-  },
-  noteText: {
-    fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#1e40af',
-    fontSize: 13,
-    lineHeight: 20,
   },
 });
