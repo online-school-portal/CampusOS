@@ -248,13 +248,31 @@ function CustomDrawerContent(props: any) {
           <SectionHeader title="Fees" icon="cash-outline" sectionKey="fees" />
           {openSection === 'fees' && (
             <View style={styles.subMenu}>
-              <MenuItem label="Fee Types" icon="pricetag-outline" onPress={() => {}} isSub />
-              <MenuItem label="Add Fees" icon="add-circle-outline" onPress={() => {}} isSub />
-              <MenuItem label="Fee Ledger" icon="book-outline" onPress={() => {}} isSub />
-              <MenuItem label="Financial Report" icon="stats-chart-outline" onPress={() => {}} isSub />
+              <MenuItem
+                label="Fee Types"
+                icon="pricetag-outline"
+                onPress={() => props.navigation.navigate('fee-types')}
+                isSub
+              />
+              <MenuItem
+                label="Add Fees"
+                icon="add-circle-outline"
+                onPress={() => props.navigation.navigate('add-fees')}
+                isSub
+              />
+              <MenuItem
+                label="Fee Ledger"
+                icon="book-outline"
+                onPress={() => props.navigation.navigate('fee-ledger')}
+                isSub
+              />
             </View>
           )}
-          <MenuItem label="Credit Tracking" icon="card-outline" onPress={() => {}} />
+          <MenuItem
+            label="Credit Tracking"
+            icon="card-outline"
+            onPress={() => props.navigation.navigate('credit-tracking')}
+          />
         </>
       )}
 
@@ -332,6 +350,10 @@ export default function AppLayout() {
       <Drawer.Screen name="add-result" options={{ title: 'Add Result' }} />
       <Drawer.Screen name="manage-results" options={{ title: 'Manage Results' }} />
       <Drawer.Screen name="results" options={{ title: 'Results' }} />
+      <Drawer.Screen name="fee-types" options={{ title: 'Fee Types' }} />
+      <Drawer.Screen name="add-fees" options={{ title: 'Add Fees' }} />
+      <Drawer.Screen name="fee-ledger" options={{ title: 'Fee Ledger' }} />
+      <Drawer.Screen name="credit-tracking" options={{ title: 'Credit Tracking' }} />
     </Drawer>
   );
 }
