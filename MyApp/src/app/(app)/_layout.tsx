@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Drawer } from 'expo-router/drawer';
+import { Drawer, DrawerContentScrollView } from 'expo-router/drawer';
 import { useRouter } from 'expo-router';
 import {
   View,
@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
-import { DrawerContentScrollView } from '@react-navigation/drawer';
 
 function CustomDrawerContent(props: any) {
   const router = useRouter();
