@@ -5772,64 +5772,28 @@ document
 
             }
 
-            // SAVE PAYMENT
-            const payload = {
-
-                school_id: student.school_id,
-
-                student_id: studentId,
-
-                class_fee_id: classFeeId,
-
-                amount,
-
-                payment_method: paymentMethod,
-
-                proof_url: proofUrl,
-
-                proof_path: proofPath,
-
-                source: "manual"
-
-            };
-
-            const { error } = await supabaseClient.rpc(
-
-                "save_fee_payment_with_credit",
-
-                {
-
-                    payload
-
-                }
-
-            );
+            // SAVE PAYMENT (no credit deduction)
+            const { error } = await supabaseClient
+                .from("fee_payments")
+                .insert({
+                    school_id: student.school_id,
+                    student_id: studentId,
+                    class_fee_id: classFeeId,
+                    amount,
+                    payment_method: paymentMethod,
+                    proof_url: proofUrl,
+                    proof_path: proofPath,
+                    source: "manual"
+                });
 
             if (error) {
-
-                if (
-                    error.message?.includes("NO_CREDITS")
-                ) {
-
-                    showToast(
-                        "No credits remaining. Please purchase more credits before recording another student's fee payment.",
-                        "error"
-                    );
-
-                    return;
-
-                }
-
                 throw error;
-
             }
 
             showToast(
                 "Payment recorded successfully.",
                 "success"
             );
-
-            await loadCredits();
 
             resetImagePreview({
 
@@ -6143,49 +6107,24 @@ async function saveBulkPayment() {
 
         }
 
-        const payload = {
-
+        // SAVE BULK PAYMENTS (no credit deduction)
+        const rows = selectedFees.map((fee) => ({
             school_id: student.school_id,
-
             student_id: studentId,
-
+            class_fee_id: fee.class_fee_id,
+            amount: fee.amount,
             payment_method: paymentMethod,
-
             proof_url: proofUrl,
-
             proof_path: proofPath,
+            source: "manual"
+        }));
 
-            source: "manual",
-
-            payments: selectedFees
-
-        };
-
-        const { error } = await supabaseClient.rpc(
-
-            "save_bulk_fee_payments_with_credit",
-
-            { payload }
-
-        );
+        const { error } = await supabaseClient
+            .from("fee_payments")
+            .insert(rows);
 
         if (error) {
-
-            if (
-                error.message?.includes("NO_CREDITS")
-            ) {
-
-                showToast(
-                    "No credits remaining. Please purchase more credits before recording additional fee payments.",
-                    "error"
-                );
-
-                return;
-
-            }
-
             throw error;
-
         }
 
         closePayAllModal();
@@ -6193,7 +6132,6 @@ async function saveBulkPayment() {
         await fetchStudentLedger();
         await loadPaymentHistory();
         await fetchAvailableReports();
-        await loadCredits();
 
         showToast(
             "Payments recorded successfully.",
