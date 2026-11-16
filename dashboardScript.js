@@ -36,7 +36,9 @@ let selected = {
   subjectClassFilter: null,
   feeClassId: null,
   ledgerClassId: null,
-  reportClassId: null
+  reportClassId: null,
+  analysisClassId: null,
+  analysisStudentId: null
 };
 
 
@@ -110,6 +112,24 @@ function showSection(sectionId) {
   if (navLinks && hamburger) {
     navLinks.classList.remove("active");
     hamburger.classList.remove("active");
+  }
+
+  // Keep term/session + progress in sync when opening these sections
+  if (sectionId === "overview" || sectionId === "results") {
+    applySchoolTermToForms();
+    if (sectionId === "overview") {
+      updateSchoolResultProgress();
+    }
+    if (sectionId === "results") {
+      updateClassResultProgress();
+    }
+  }
+
+  if (sectionId === "subjectAnalysis") {
+    initSubjectAnalysisDropdown().then(() => {
+      applySchoolTermToAnalysisForm();
+      refreshSubjectAnalysis();
+    });
   }
 }
 
@@ -305,6 +325,8 @@ async function loadDashboard(session) {
 
         }
 
+        window.currentSchoolId = school_id || null;
+
         // 3️⃣ PROFILE IMAGE
 
         const imgMap = {
@@ -455,6 +477,14 @@ async function loadDashboard(session) {
 
         console.log("Dashboard fully loaded");
 
+        try {
+          await loadSchoolTermSettings();
+        } catch (_) {}
+
+        try {
+          await initSubjectAnalysisDropdown();
+        } catch (_) {}
+
     } catch (err) {
 
         console.error("Dashboard error:", err);
@@ -517,6 +547,10 @@ async function refreshDashboardStats() {
 
     document.getElementById("totalResultsCount").textContent =
         resultsCountRes.count ?? 0;
+
+    try {
+      await updateSchoolResultProgress();
+    } catch (_) {}
 
 }
 
@@ -8603,6 +8637,726 @@ Continue?`
 }
 
 
+
+
+/* ===============================
+   RESULT PROGRESS TRACKER
+================================ */
+function escapeHtml(str) {
+  return String(str ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+window.schoolTermSettings = {
+  current_term: "",
+  current_session: ""
+};
+
+function setSelectValue(selectEl, value) {
+  if (!selectEl || value == null) return false;
+  const v = String(value).trim();
+  if (!v) return false;
+
+  let found = false;
+  for (let i = 0; i < selectEl.options.length; i++) {
+    if (selectEl.options[i].value === v) {
+      found = true;
+      break;
+    }
+  }
+  if (!found) {
+    const opt = document.createElement("option");
+    opt.value = v;
+    opt.textContent = v;
+    selectEl.appendChild(opt);
+  }
+  selectEl.value = v;
+  return selectEl.value === v;
+}
+
+function applySchoolTermToForms() {
+  const term = (window.schoolTermSettings.current_term || "").trim();
+  const session = (window.schoolTermSettings.current_session || "").trim();
+
+  setSelectValue(document.getElementById("schoolCurrentTerm"), term);
+  setSelectValue(document.getElementById("schoolCurrentSession"), session);
+
+  // Always push saved settings into Add Result (override blank placeholders)
+  if (term) setSelectValue(document.getElementById("resultTerm"), term);
+  if (session) setSelectValue(document.getElementById("resultSession"), session);
+}
+
+async function resolveSchoolId() {
+  if (window.currentSchoolId) return window.currentSchoolId;
+  const { data, error } = await supabaseClient.rpc("current_user_school_id");
+  if (error) throw error;
+  window.currentSchoolId = data;
+  return data;
+}
+
+async function loadSchoolTermSettings() {
+  try {
+    const schoolId = await resolveSchoolId();
+    if (!schoolId) {
+      console.warn("loadSchoolTermSettings: missing school id");
+      return;
+    }
+
+    const { data, error } = await supabaseClient
+      .from("schools")
+      .select("current_term, current_session")
+      .eq("id", schoolId)
+      .maybeSingle();
+
+    if (error) {
+      console.error("loadSchoolTermSettings query error:", error);
+      const label = document.getElementById("schoolProgressLabel");
+      if (label) {
+        label.textContent =
+          "Could not load term settings (" + (error.message || "error") + ")";
+      }
+      return;
+    }
+
+    window.schoolTermSettings.current_term = (data && data.current_term) ? String(data.current_term).trim() : "";
+    window.schoolTermSettings.current_session = (data && data.current_session) ? String(data.current_session).trim() : "";
+
+    console.log("School term settings:", window.schoolTermSettings);
+
+    applySchoolTermToForms();
+    await updateSchoolResultProgress();
+    await updateClassResultProgress();
+  } catch (err) {
+    console.error("loadSchoolTermSettings failed:", err);
+  }
+}
+
+async function saveSchoolTermSettings() {
+  const term = document.getElementById("schoolCurrentTerm")?.value?.trim() || "";
+  const session = document.getElementById("schoolCurrentSession")?.value?.trim() || "";
+
+  if (!term || !session) {
+    showToast("Select both current term and session.", "error");
+    return;
+  }
+
+  try {
+    showSpinner("Saving term settings...");
+    const schoolId = await resolveSchoolId();
+    if (!schoolId) throw new Error("No school id");
+
+    // Write + return the row so we know RLS/columns actually worked
+    const { data: updated, error } = await supabaseClient
+      .from("schools")
+      .update({
+        current_term: term,
+        current_session: session
+      })
+      .eq("id", schoolId)
+      .select("id, current_term, current_session")
+      .maybeSingle();
+
+    if (error) {
+      console.error("saveSchoolTermSettings update error:", error);
+      throw error;
+    }
+
+    // If RLS blocks UPDATE, PostgREST often returns no error and null data
+    if (!updated) {
+      throw new Error(
+        "Update returned no row. Check schools RLS allows admin UPDATE on your school, and columns current_term / current_session exist."
+      );
+    }
+
+    // Confirm read-back
+    const { data: check, error: checkErr } = await supabaseClient
+      .from("schools")
+      .select("current_term, current_session")
+      .eq("id", schoolId)
+      .maybeSingle();
+
+    if (checkErr) {
+      console.error("saveSchoolTermSettings read-back error:", checkErr);
+      throw checkErr;
+    }
+
+    const savedTerm = (check?.current_term || updated.current_term || "").trim();
+    const savedSession = (check?.current_session || updated.current_session || "").trim();
+
+    if (savedTerm !== term || savedSession !== session) {
+      throw new Error(
+        "Database did not keep the values. Run the SQL for columns + RLS, then try again."
+      );
+    }
+
+    window.schoolTermSettings.current_term = savedTerm;
+    window.schoolTermSettings.current_session = savedSession;
+
+    applySchoolTermToForms();
+    showToast("Saved to database: " + savedTerm + " · " + savedSession, "success");
+    await updateSchoolResultProgress();
+    await updateClassResultProgress();
+  } catch (err) {
+    console.error("saveSchoolTermSettings:", err);
+    const msg =
+      (err && (err.message || err.error_description)) ||
+      "Could not save term settings to database.";
+    showToast(msg, "error");
+  } finally {
+    hideSpinner();
+  }
+}
+
+async function countResultsProgress({ schoolId, classId, term, session }) {
+  if (!schoolId || !term || !session) {
+    return { entered: 0, total: 0 };
+  }
+
+  let studentQuery = supabaseClient
+    .from("students")
+    .select("id", { count: "exact", head: true })
+    .eq("school_id", schoolId);
+
+  if (classId) {
+    studentQuery = studentQuery.eq("class_id", classId);
+  }
+
+  const { count: totalStudents, error: stErr } = await studentQuery;
+  if (stErr) throw stErr;
+
+  let resultQuery = supabaseClient
+    .from("results")
+    .select("student_id")
+    .eq("school_id", schoolId)
+    .eq("term", term)
+    .eq("session", session);
+
+  if (classId) {
+    resultQuery = resultQuery.eq("class_id", classId);
+  }
+
+  const { data: resultRows, error: rErr } = await resultQuery;
+  if (rErr) throw rErr;
+
+  const unique = new Set((resultRows || []).map(r => r.student_id).filter(Boolean));
+  return {
+    entered: unique.size,
+    total: totalStudents || 0
+  };
+}
+
+function setProgressUI({ barId, enteredId, totalId, labelId, entered, total, label }) {
+  const pct = total > 0 ? Math.min(100, Math.round((entered / total) * 100)) : 0;
+  const bar = document.getElementById(barId);
+  const ent = document.getElementById(enteredId);
+  const tot = document.getElementById(totalId);
+  const lab = labelId ? document.getElementById(labelId) : null;
+  if (bar) bar.style.width = pct + "%";
+  if (ent) ent.textContent = String(entered);
+  if (tot) tot.textContent = String(total);
+  if (lab && label != null) lab.textContent = label;
+}
+
+async function updateSchoolResultProgress() {
+  try {
+    const term =
+      (window.schoolTermSettings.current_term || "").trim() ||
+      document.getElementById("schoolCurrentTerm")?.value?.trim() ||
+      "";
+    const session =
+      (window.schoolTermSettings.current_session || "").trim() ||
+      document.getElementById("schoolCurrentSession")?.value?.trim() ||
+      "";
+
+    if (!term || !session) {
+      setProgressUI({
+        barId: "schoolProgressBar",
+        enteredId: "schoolProgressEntered",
+        totalId: "schoolProgressTotal",
+        labelId: "schoolProgressLabel",
+        entered: 0,
+        total: 0,
+        label: "Set current term & session below and save"
+      });
+      return;
+    }
+
+    const schoolId = await resolveSchoolId();
+    if (!schoolId) return;
+
+    const { entered, total } = await countResultsProgress({
+      schoolId,
+      classId: null,
+      term,
+      session
+    });
+
+    setProgressUI({
+      barId: "schoolProgressBar",
+      enteredId: "schoolProgressEntered",
+      totalId: "schoolProgressTotal",
+      labelId: "schoolProgressLabel",
+      entered,
+      total,
+      label: term + " · " + session
+    });
+  } catch (err) {
+    console.warn("updateSchoolResultProgress:", err);
+  }
+}
+
+async function updateClassResultProgress() {
+  const panel = document.getElementById("classResultProgress");
+  if (!panel) return;
+
+  const classId =
+    selected.resultClassId ||
+    document.getElementById("resultClass")?.value ||
+    null;
+
+  // Form values first (allows teacher override), else school settings
+  let term = document.getElementById("resultTerm")?.value?.trim() || "";
+  let session = document.getElementById("resultSession")?.value?.trim() || "";
+
+  if (!term) term = (window.schoolTermSettings.current_term || "").trim();
+  if (!session) session = (window.schoolTermSettings.current_session || "").trim();
+
+  // If still missing, try apply once more from settings
+  if ((!term || !session) && (window.schoolTermSettings.current_term || window.schoolTermSettings.current_session)) {
+    applySchoolTermToForms();
+    term = document.getElementById("resultTerm")?.value?.trim() || term;
+    session = document.getElementById("resultSession")?.value?.trim() || session;
+  }
+
+  if (!classId) {
+    panel.classList.add("hidden");
+    return;
+  }
+
+  if (!term || !session) {
+    panel.classList.remove("hidden");
+    setProgressUI({
+      barId: "classProgressBar",
+      enteredId: "classProgressEntered",
+      totalId: "classProgressTotal",
+      labelId: "classProgressPeriod",
+      entered: 0,
+      total: 0,
+      label: "Save term & session on Overview first"
+    });
+    return;
+  }
+
+  try {
+    const schoolId = await resolveSchoolId();
+    if (!schoolId) {
+      panel.classList.add("hidden");
+      return;
+    }
+
+    const { entered, total } = await countResultsProgress({
+      schoolId,
+      classId,
+      term,
+      session
+    });
+
+    panel.classList.remove("hidden");
+    setProgressUI({
+      barId: "classProgressBar",
+      enteredId: "classProgressEntered",
+      totalId: "classProgressTotal",
+      labelId: "classProgressPeriod",
+      entered,
+      total,
+      label: term + " · " + session
+    });
+  } catch (err) {
+    console.warn("updateClassResultProgress:", err);
+  }
+}
+
+document.getElementById("saveSchoolTermBtn")?.addEventListener("click", saveSchoolTermSettings);
+
+document.getElementById("resultTerm")?.addEventListener("change", () => {
+  updateClassResultProgress();
+});
+document.getElementById("resultSession")?.addEventListener("change", () => {
+  updateClassResultProgress();
+});
+
+/* ===============================
+   SUBJECT PERFORMANCE ANALYSIS
+================================ */
+function getPreviousTermName(term) {
+  if (term === "Second Term") return "First Term";
+  if (term === "Third Term") return "Second Term";
+  return null; // First Term — no previous in same session
+}
+
+function scoreSubjectFromResult(subjectRow, caType) {
+  const config = (typeof CA_TYPES !== "undefined" && CA_TYPES[caType])
+    ? CA_TYPES[caType]
+    : { parts: [
+        { key: "test1" }, { key: "test2" }, { key: "exam" },
+        { key: "ca1" }, { key: "ca2" }, { key: "ca3" }, { key: "ca4" }
+      ]};
+
+  let total = 0;
+  const seen = new Set();
+  (config.parts || []).forEach(part => {
+    if (!part?.key || seen.has(part.key)) return;
+    seen.add(part.key);
+    total += Number(subjectRow[part.key] || 0);
+  });
+
+  // Fallback: if no known keys matched, sum numeric fields except id/name
+  if (total === 0 && subjectRow && typeof subjectRow === "object") {
+    Object.keys(subjectRow).forEach(k => {
+      if (["subject_id", "subject_name", "grade", "total", "comment"].includes(k)) return;
+      const n = Number(subjectRow[k]);
+      if (!Number.isNaN(n)) total += n;
+    });
+  }
+
+  // Prefer explicit total if present and higher fidelity
+  if (subjectRow.total != null && subjectRow.total !== "") {
+    const t = Number(subjectRow.total);
+    if (!Number.isNaN(t) && t > 0) return Math.min(100, t);
+  }
+
+  return Math.min(100, Math.max(0, total));
+}
+
+function average(nums) {
+  if (!nums.length) return null;
+  return nums.reduce((a, b) => a + b, 0) / nums.length;
+}
+
+function applySchoolTermToAnalysisForm() {
+  const term = (window.schoolTermSettings?.current_term || "").trim();
+  const session = (window.schoolTermSettings?.current_session || "").trim();
+  if (term) setSelectValue(document.getElementById("analysisTerm"), term);
+  if (session) setSelectValue(document.getElementById("analysisSession"), session);
+}
+
+function perfBarClass(score) {
+  if (score == null) return "";
+  if (score >= 70) return "high";
+  if (score >= 50) return "";
+  if (score >= 40) return "warn";
+  return "low";
+}
+
+function formatDelta(curr, prev) {
+  if (curr == null || prev == null) {
+    return { text: "No previous term data", cls: "flat" };
+  }
+  const d = Math.round((curr - prev) * 10) / 10;
+  if (d > 0) return { text: "▲ +" + d + " vs prev term", cls: "up" };
+  if (d < 0) return { text: "▼ " + d + " vs prev term", cls: "down" };
+  return { text: "● Same as prev term", cls: "flat" };
+}
+
+async function fetchClassResultsForPeriod(classId, term, session) {
+  const schoolId = await resolveSchoolId();
+  if (!schoolId || !classId || !term || !session) return [];
+
+  const { data, error } = await supabaseClient
+    .from("results")
+    .select("student_id, results, ca_type, term, session, class_id")
+    .eq("school_id", schoolId)
+    .eq("class_id", classId)
+    .eq("term", term)
+    .eq("session", session);
+
+  if (error) throw error;
+  return data || [];
+}
+
+/** Map subject_name -> list of scores (0-100) */
+function collectSubjectScores(resultRows) {
+  const map = {}; // name -> numbers[]
+
+  (resultRows || []).forEach(row => {
+    const caType = row.ca_type || "standard_20_20_60";
+    const subjects = Array.isArray(row.results) ? row.results : [];
+    subjects.forEach(sub => {
+      const name = (sub.subject_name || "").trim();
+      if (!name) return;
+      const score = scoreSubjectFromResult(sub, caType);
+      if (!map[name]) map[name] = [];
+      map[name].push(score);
+    });
+  });
+
+  return map;
+}
+
+function scoresForStudent(resultRows, studentId) {
+  const map = {};
+  const row = (resultRows || []).find(r => r.student_id === studentId);
+  if (!row) return map;
+  const caType = row.ca_type || "standard_20_20_60";
+  const subjects = Array.isArray(row.results) ? row.results : [];
+  subjects.forEach(sub => {
+    const name = (sub.subject_name || "").trim();
+    if (!name) return;
+    map[name] = scoreSubjectFromResult(sub, caType);
+  });
+  return map;
+}
+
+async function refreshSubjectAnalysis() {
+  const listEl = document.getElementById("subjectAnalysisList");
+  const labelEl = document.getElementById("analysisPeriodLabel");
+  if (!listEl) return;
+
+  const classId =
+    selected.analysisClassId ||
+    document.getElementById("analysisClass")?.value ||
+    null;
+  const term = document.getElementById("analysisTerm")?.value?.trim() || "";
+  const session = document.getElementById("analysisSession")?.value?.trim() || "";
+  const studentId =
+    selected.analysisStudentId ||
+    document.getElementById("analysisStudent")?.value ||
+    null;
+
+  if (!classId) {
+    listEl.innerHTML = `<p class="empty-state">Select a class to load subject performance.</p>`;
+    if (labelEl) labelEl.textContent = "Select class, term and session";
+    return;
+  }
+
+  if (!term || !session) {
+    listEl.innerHTML = `<p class="empty-state">Select term and session (or save school defaults on Overview).</p>`;
+    if (labelEl) labelEl.textContent = "Term & session required";
+    return;
+  }
+
+  const prevTerm = getPreviousTermName(term);
+  if (labelEl) {
+    labelEl.textContent = studentId
+      ? `Student view · ${term} · ${session}` + (prevTerm ? ` (vs ${prevTerm})` : "")
+      : `Class average · ${term} · ${session}` + (prevTerm ? ` (vs ${prevTerm})` : "");
+  }
+
+  try {
+    listEl.innerHTML = `<p class="empty-state">Loading analysis...</p>`;
+
+    // Subjects registered for class (stable order)
+    const subjects = await loadSubjectsByClass(classId);
+    const subjectNames = (subjects || []).map(s => s.name).filter(Boolean);
+
+    const [currentRows, prevRows] = await Promise.all([
+      fetchClassResultsForPeriod(classId, term, session),
+      prevTerm
+        ? fetchClassResultsForPeriod(classId, prevTerm, session)
+        : Promise.resolve([])
+    ]);
+
+    let currentMap;
+    let prevMap;
+
+    if (studentId) {
+      currentMap = scoresForStudent(currentRows, studentId);
+      prevMap = scoresForStudent(prevRows, studentId);
+      // convert single values to display averages
+    } else {
+      currentMap = collectSubjectScores(currentRows);
+      prevMap = collectSubjectScores(prevRows);
+    }
+
+    // Ensure we show all class subjects even if no scores yet
+    const allNames = [...new Set([
+      ...subjectNames,
+      ...Object.keys(currentMap || {}),
+      ...Object.keys(prevMap || {})
+    ])].sort((a, b) => a.localeCompare(b));
+
+    if (!allNames.length) {
+      listEl.innerHTML = `<p class="empty-state">No subjects found for this class.</p>`;
+      return;
+    }
+
+    const cards = allNames.map(name => {
+      let currAvg;
+      let prevAvg;
+      let sampleN = 0;
+
+      if (studentId) {
+        currAvg = currentMap[name] != null ? currentMap[name] : null;
+        prevAvg = prevMap[name] != null ? prevMap[name] : null;
+      } else {
+        const currList = currentMap[name] || [];
+        const prevList = prevMap[name] || [];
+        sampleN = currList.length;
+        currAvg = average(currList);
+        prevAvg = average(prevList);
+      }
+
+      const display = currAvg != null ? Math.round(currAvg * 10) / 10 : null;
+      const pct = display != null ? Math.min(100, Math.max(0, display)) : 0;
+      const barCls = perfBarClass(display);
+      const delta = formatDelta(
+        display,
+        prevAvg != null ? Math.round(prevAvg * 10) / 10 : null
+      );
+
+      const metaBits = [];
+      if (!studentId) {
+        metaBits.push(sampleN ? `${sampleN} student(s) scored` : "No scores this term");
+      } else {
+        metaBits.push(display != null ? "Student score" : "No score this term");
+      }
+      if (prevAvg != null) {
+        metaBits.push(`Prev: ${Math.round(prevAvg * 10) / 10}%`);
+      }
+
+      return `
+        <div class="subject-perf-card">
+          <div class="subject-perf-header">
+            <h4>${escapeHtml ? escapeHtml(name) : name}</h4>
+            <span class="subject-perf-score">${display != null ? display + "%" : "—"}</span>
+          </div>
+          <div class="subject-perf-track">
+            <div class="subject-perf-fill ${barCls}" style="width:${pct}%"></div>
+          </div>
+          <div class="subject-perf-meta">
+            <span>${metaBits.join(" · ")}</span>
+            <span class="subject-perf-delta ${delta.cls}">${delta.text}</span>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    listEl.innerHTML = cards;
+  } catch (err) {
+    console.error("refreshSubjectAnalysis:", err);
+    listEl.innerHTML = `<p class="empty-state">Could not load analysis: ${(err && err.message) || "error"}</p>`;
+  }
+}
+
+async function initSubjectAnalysisDropdown() {
+  const select = document.getElementById("analysisClass");
+  const dropdown = document.getElementById("analysisClassDropdown");
+  const text = document.getElementById("analysisClassSelectedText");
+  if (!select || !dropdown || !text) {
+    console.warn("Subject analysis class elements missing in DOM");
+    return;
+  }
+
+  try {
+    if (!allClasses || !allClasses.length) {
+      await loadClasses();
+    }
+    const classes = allClasses || [];
+
+    populateClassDropdown({
+      classes,
+      dropdownId: "analysisClassDropdown",
+      selectId: "analysisClass",
+      textId: "analysisClassSelectedText",
+      placeholder: "Select class",
+      resetOption: true,
+      stateKey: "analysisClassId",
+      onChange: async (cls) => {
+        selected.analysisClassId = cls?.id || null;
+        selected.analysisStudentId = null;
+
+        const sText = document.getElementById("analysisStudentText");
+        const sSelect = document.getElementById("analysisStudent");
+        const sDropdown = document.getElementById("analysisStudentDropdown");
+        if (sText) sText.textContent = "All students (class average)";
+        if (sSelect) {
+          sSelect.innerHTML = `<option value="">All students (class average)</option>`;
+        }
+        if (sDropdown) sDropdown.innerHTML = "";
+
+        if (cls?.id) {
+          const students = await loadStudentsByClass(cls.id);
+
+          if (sDropdown) {
+            const allItem = document.createElement("div");
+            allItem.className = "student-option";
+            allItem.textContent = "All students (class average)";
+            allItem.onclick = () => {
+              selected.analysisStudentId = null;
+              if (sSelect) sSelect.value = "";
+              if (sText) sText.textContent = "All students (class average)";
+              sDropdown.classList.remove("show");
+              refreshSubjectAnalysis();
+            };
+            sDropdown.appendChild(allItem);
+          }
+
+          (students || []).forEach(s => {
+            if (sSelect) {
+              const opt = document.createElement("option");
+              opt.value = s.id;
+              opt.textContent = s.full_name;
+              sSelect.appendChild(opt);
+            }
+            if (sDropdown) {
+              const item = document.createElement("div");
+              item.className = "student-option";
+              item.innerHTML = `<span>${s.full_name}</span>`;
+              item.onclick = () => {
+                selected.analysisStudentId = s.id;
+                if (sSelect) sSelect.value = s.id;
+                if (sText) sText.textContent = s.full_name;
+                sDropdown.classList.remove("show");
+                refreshSubjectAnalysis();
+              };
+              sDropdown.appendChild(item);
+            }
+          });
+        }
+
+        applySchoolTermToAnalysisForm();
+        await refreshSubjectAnalysis();
+      }
+    });
+
+    const dd = document.getElementById("analysisClassDropdown");
+    console.log(
+      "Subject analysis classes loaded:",
+      classes.length,
+      "dropdown options:",
+      dd ? dd.children.length : 0
+    );
+  } catch (err) {
+    console.error("initSubjectAnalysisDropdown:", err);
+  }
+}
+
+// Bind filters once
+document.getElementById("analysisTerm")?.addEventListener("change", () => {
+  refreshSubjectAnalysis();
+});
+document.getElementById("analysisSession")?.addEventListener("change", () => {
+  refreshSubjectAnalysis();
+});
+
+document.getElementById("analysisClass")?.addEventListener("change", async (e) => {
+  selected.analysisClassId = e.target.value || null;
+  applySchoolTermToAnalysisForm();
+  await refreshSubjectAnalysis();
+});
+
+// Init when DOM ready AND after dashboard classes load
+document.addEventListener("DOMContentLoaded", () => {
+  initSubjectAnalysisDropdown();
+});
+
+
+
+
+
 /* =======================
    RESULTS SECTION
 ======================= */
@@ -8849,7 +9603,11 @@ document.getElementById("caType")?.addEventListener("change", async () => {
 resultClassSelect.addEventListener("change", async (e) => {
   const classId = e.target.value;
 
-  if (!classId) return;
+  if (!classId) {
+    selected.resultClassId = null;
+    document.getElementById("classResultProgress")?.classList.add("hidden");
+    return;
+  }
 
   selected.resultClassId = classId;
 
@@ -8858,6 +9616,10 @@ resultClassSelect.addEventListener("change", async (e) => {
   resultStudentSelect.innerHTML = '<option value="">--Select Student--</option>';
 
   const students = await loadStudentsByClass(classId);
+
+  // Cache for gender autofill
+  window._studentsById = window._studentsById || {};
+  students.forEach(s => { window._studentsById[s.id] = s; });
 
   students.forEach(s => {
     const option = document.createElement("option");
@@ -8868,6 +9630,10 @@ resultClassSelect.addEventListener("change", async (e) => {
 
   const subjects = await loadSubjectsByClass(classId);
   renderSubjectInputs(subjects);
+
+  // Fill term/session from school settings, then show progress
+  applySchoolTermToForms();
+  await updateClassResultProgress();
 });
 
 resultStudentSelect.addEventListener("change", (e) => {
@@ -9197,10 +9963,13 @@ resultForm.addEventListener("submit", async (e) => {
             "success"
         );
 
-        await loadCredits();
+        try { await loadCredits(); } catch (_) {}
         await refreshDashboardStats();
+        await updateSchoolResultProgress();
+        await updateClassResultProgress();
 
         resetResultForm();
+        document.getElementById("classResultProgress")?.classList.add("hidden");
 
     } catch (err) {
 
@@ -9253,6 +10022,9 @@ function resetResultForm() {
     selected.resultStudentId = null;
     selected.resultClassId = null;
 
+    // Re-apply school current term/session after reset
+    applySchoolTermToForms();
+
   } catch (err) {
     console.error("Reset error:", err);
   }
@@ -9273,13 +10045,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     resetOption: true,
     stateKey: "resultClassId",
 
-    onChange: (cls) => {
+    onChange: async (cls) => {
       console.log("Result class selected:", cls?.id);
 
-      if (!cls) return;
+      if (!cls) {
+        selected.resultClassId = null;
+        document.getElementById("classResultProgress")?.classList.add("hidden");
+        return;
+      }
 
       selected.resultClassId = cls.id;
-
+      applySchoolTermToForms();
+      await updateClassResultProgress();
     }
   });
 

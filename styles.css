@@ -1563,3 +1563,136 @@ button.save-btn:hover {
 }
 .toast-success { background: #16a34a; }
 .toast-error { background: #dc2626; }
+
+
+/* ===== RESULT PROGRESS TRACKER ===== */
+.result-progress-card .progress-meta,
+.progress-meta {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0.25rem 0 0.75rem;
+}
+.progress-track {
+  width: 100%;
+  height: 10px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+.progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--primary), #3b82f6);
+  border-radius: 999px;
+  transition: width 0.35s ease;
+}
+.progress-count {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--navy);
+}
+.progress-count strong {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+.result-progress-panel {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+  box-shadow: var(--card-shadow);
+}
+.progress-panel-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.term-settings-card {
+  margin-top: 1.5rem;
+}
+
+
+/* ===== SUBJECT PERFORMANCE ANALYSIS ===== */
+.subject-analysis-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+.subject-perf-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1rem 1.15rem;
+  box-shadow: var(--card-shadow);
+}
+.subject-perf-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+.subject-perf-header h4 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--navy);
+}
+.subject-perf-score {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--primary);
+  white-space: nowrap;
+}
+.subject-perf-track {
+  width: 100%;
+  height: 12px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 0.45rem;
+}
+.subject-perf-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #2563eb, #3b82f6);
+  transition: width 0.35s ease;
+}
+.subject-perf-fill.warn {
+  background: linear-gradient(90deg, #ca8a04, #eab308);
+}
+.subject-perf-fill.low {
+  background: linear-gradient(90deg, #dc2626, #f87171);
+}
+.subject-perf-fill.high {
+  background: linear-gradient(90deg, #059669, #34d399);
+}
+.subject-perf-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+.subject-perf-delta {
+  font-weight: 700;
+}
+.subject-perf-delta.up { color: #059669; }
+.subject-perf-delta.down { color: #dc2626; }
+.subject-perf-delta.flat { color: var(--text-muted); }
+
+
+.analysis-select {
+  max-width: 100%;
+  width: 100%;
+  margin-top: 0.35rem;
+  margin-bottom: 0.25rem;
+}
+.analysis-select .student-dropdown {
+  z-index: 400;
+}

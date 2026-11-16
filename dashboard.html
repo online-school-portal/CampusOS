@@ -96,6 +96,10 @@
           Manage Results
         </button>
 
+        <button onclick="showSection('subjectAnalysis')" data-role="admin,teacher">
+          Subject Performance
+        </button>
+
       </div>
     </div>
 
@@ -235,11 +239,53 @@
       <p id="totalStudentsCount">0</p>
       <p>Accessible students</p>
     </div>
-<div class="data-card total-results" data-role="admin,teacher,student">
-  <h3>Total Results</h3>
-  <p id="totalResultsCount">0</p>
-  <p>Generated reports</p>
-</div>
+    <div class="data-card total-results" data-role="admin,teacher,student">
+      <h3>Total Results</h3>
+      <p id="totalResultsCount">0</p>
+      <p>Generated reports</p>
+    </div>
+    <div class="data-card result-progress-card" data-role="admin,teacher">
+      <h3>Term Result Progress</h3>
+      <p id="schoolProgressLabel" class="progress-meta">Set current term &amp; session</p>
+      <div class="progress-track">
+        <div id="schoolProgressBar" class="progress-fill" style="width:0%"></div>
+      </div>
+      <p class="progress-count">
+        <strong id="schoolProgressEntered">0</strong>
+        /
+        <strong id="schoolProgressTotal">0</strong>
+        students with results
+      </p>
+    </div>
+  </div>
+
+  <!-- CURRENT TERM / SESSION (admin) -->
+  <div class="form-card term-settings-card" data-role="admin">
+    <h2>Current Term &amp; Session</h2>
+    <p class="text-muted" style="margin-bottom:1rem;font-size:0.9rem;">
+      Used for the result progress tracker. Teachers can still pick a different term/session when adding a result.
+    </p>
+    <div class="row">
+      <label>
+        Current Term
+        <select id="schoolCurrentTerm" class="form-select">
+          <option value="">Select Term</option>
+          <option value="First Term">First Term</option>
+          <option value="Second Term">Second Term</option>
+          <option value="Third Term">Third Term</option>
+        </select>
+      </label>
+      <label>
+        Current Session
+        <select id="schoolCurrentSession" class="form-select">
+          <option value="">Select Session</option>
+          <option value="2025/2026">2025/2026</option>
+          <option value="2026/2027">2026/2027</option>
+          <option value="2027/2028">2027/2028</option>
+        </select>
+      </label>
+    </div>
+    <button type="button" id="saveSchoolTermBtn" class="save-btn">Save Term Settings</button>
   </div>
 </section>
 
@@ -1014,6 +1060,22 @@
 </div>
 <h1>Add Result</h1>
 
+<div id="classResultProgress" class="result-progress-panel hidden">
+  <div class="progress-panel-header">
+    <strong>Class result progress</strong>
+    <span id="classProgressPeriod" class="progress-meta"></span>
+  </div>
+  <div class="progress-track">
+    <div id="classProgressBar" class="progress-fill" style="width:0%"></div>
+  </div>
+  <p class="progress-count">
+    <strong id="classProgressEntered">0</strong>
+    /
+    <strong id="classProgressTotal">0</strong>
+    results entered for this class
+  </p>
+</div>
+
 <div class="form-card">
   <form id="resultForm">
 
@@ -1303,6 +1365,70 @@
 
 
 <!-- ========================= -->
+
+<!-- ========================= -->
+<!-- SUBJECT PERFORMANCE ANALYSIS -->
+<!-- ========================= -->
+<section id="subjectAnalysis" class="section" data-role="admin,teacher">
+  <h1>Subject Performance</h1>
+  <p class="text-muted" style="margin-top:-0.75rem;margin-bottom:1.25rem;">
+    Class average per subject for the selected term &amp; session, compared with the previous term.
+    Optionally pick a student to see individual scores.
+  </p>
+
+  <div class="form-card">
+    <label>Class</label>
+    <div class="student-select analysis-select">
+      <div id="analysisClassSelected" class="student-selected"
+           onclick="toggleStudentDropdown('analysisClassDropdown')">
+        <div class="student-placeholder">
+          <span id="analysisClassSelectedText">Select class</span>
+        </div>
+        <span class="student-arrow">▼</span>
+      </div>
+      <div id="analysisClassDropdown" class="student-dropdown"></div>
+    </div>
+    <select id="analysisClass" class="hidden-input"></select>
+
+    <label style="margin-top:1rem;display:block;">Term</label>
+    <select id="analysisTerm" class="form-select">
+      <option value="">Select Term</option>
+      <option value="First Term">First Term</option>
+      <option value="Second Term">Second Term</option>
+      <option value="Third Term">Third Term</option>
+    </select>
+
+    <label style="margin-top:1rem;display:block;">Session</label>
+    <select id="analysisSession" class="form-select">
+      <option value="">Select Session</option>
+      <option value="2025/2026">2025/2026</option>
+      <option value="2026/2027">2026/2027</option>
+      <option value="2027/2028">2027/2028</option>
+    </select>
+
+    <label style="margin-top:1rem;display:block;">Student (optional)</label>
+    <div class="student-select analysis-select">
+      <div id="analysisStudentSelected" class="student-selected"
+           onclick="toggleStudentDropdown('analysisStudentDropdown')">
+        <div class="student-placeholder">
+          <span id="analysisStudentText">All students (class average)</span>
+        </div>
+        <span class="student-arrow">▼</span>
+      </div>
+      <div id="analysisStudentDropdown" class="student-dropdown"></div>
+    </div>
+    <select id="analysisStudent" class="hidden-input">
+      <option value="">All students (class average)</option>
+    </select>
+
+    <p id="analysisPeriodLabel" class="progress-meta" style="margin-top:1rem;">Select class, term and session</p>
+  </div>
+
+  <div id="subjectAnalysisList" class="subject-analysis-list mt-4">
+    <p class="empty-state">Select a class to load subject performance.</p>
+  </div>
+</section>
+
 <!-- MANAGE RESULTS -->
 <!-- ========================= -->
 <section id="manageResults" class="section" data-role="teacher,admin,student">
