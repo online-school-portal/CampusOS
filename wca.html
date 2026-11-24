@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wise Choice Academy</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="icon"
+      type="image/png"
+      href="https://irelkjvppoisvjpopdpb.supabase.co/storage/v1/object/public/logo-images/wisechoice.jpg">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --primary: #166534;
+      --primary-light: #15803d;
+      --primary-dark: #14532d;
+      --accent: #16a34a;
+      --cta: #dc2626;
+      --cta-hover: #b91c1c;
+      --white: #ffffff;
+      --off-white: #f0fdf4;
+      --light-green: #dcfce7;
+      --gray: #64748b;
+    }
+
+    * {
+      box-sizing: border-box;
+      scroll-behavior: smooth;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: var(--white);
+      color: #1e293b;
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    h1, h2, h3, h4 {
+      font-family: 'Space Grotesk', sans-serif;
+      margin: 0;
+    }
+
+    /* ===== NAVBAR ===== */
+    .navbar {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      background: #ffffff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 5%;
+      z-index: 1000;
+      transition: box-shadow 0.3s ease;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .navbar.scrolled {
+      box-shadow: 0 4px 20px rgba(22, 101, 52, 0.12);
+    }
+
+    .logo-area {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+
+    .logo-area img {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--primary);
+    }
+
+    .logo-text {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.2;
+    }
+
+    .logo-text .name {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .logo-text .tag {
+      font-size: 0.7rem;
+      color: var(--gray);
+      font-weight: 400;
+    }
+
+    .hamburger {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 5px;
+      cursor: pointer;
+      padding: 8px;
+      z-index: 1100;
+      background: none;
+      border: none;
+    }
+
+    .hamburger span {
+      display: block;
+      width: 24px;
+      height: 2.5px;
+      background: var(--primary);
+      border-radius: 2px;
+      transition: all 0.3s ease;
+    }
+
+    .hamburger.active span:nth-child(1) {
+      transform: rotate(45deg) translate(5.5px, 5.5px);
+    }
+    .hamburger.active span:nth-child(2) {
+      opacity: 0;
+    }
+    .hamburger.active span:nth-child(3) {
+      transform: rotate(-45deg) translate(5.5px, -5.5px);
+    }
+
+    .nav-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(20, 83, 45, 0.45);
+      z-index: 999;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .nav-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .nav-menu {
+      position: fixed;
+      top: 0;
+      right: -300px;
+      width: 280px;
+      height: 100%;
+      background: #ffffff;
+      z-index: 1001;
+      transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      flex-direction: column;
+      box-shadow: -8px 0 30px rgba(0, 0, 0, 0.1);
+    }
+
+    .nav-menu.active {
+      right: 0;
+    }
+
+    .nav-menu-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .nav-menu-header .menu-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--primary);
+    }
+
+    .nav-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      color: var(--primary);
+      cursor: pointer;
+      line-height: 1;
+      padding: 4px 8px;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-direction: column;
+      padding: 16px 0;
+      flex: 1;
+    }
+
+    .nav-links a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 1.05rem;
+      padding: 16px 24px;
+      border-bottom: 1px solid #f1f5f9;
+      transition: background 0.2s ease;
+    }
+
+    .nav-links a:hover,
+    .nav-links a:active {
+      background: var(--light-green);
+    }
+
+    .nav-menu-footer {
+      padding: 20px 24px;
+      border-top: 1px solid #e5e7eb;
+      font-size: 0.8rem;
+      color: var(--gray);
+      text-align: center;
+    }
+
+    /* ===== HERO ===== */
+    #home {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 100px 6% 70px;
+      position: relative;
+      background: linear-gradient(160deg, #14532d 0%, #166534 45%, #15803d 100%);
+      overflow: hidden;
+    }
+
+    #home::before {
+      content: '';
+      position: absolute;
+      width: 420px;
+      height: 420px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.04);
+      top: -100px;
+      right: -80px;
+    }
+
+    #home::after {
+      content: '';
+      position: absolute;
+      width: 300px;
+      height: 300px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.03);
+      bottom: -60px;
+      left: -60px;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      max-width: 720px;
+      animation: fadeInUp 0.9s ease-out forwards;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
+      padding: 8px 18px;
+      border-radius: 50px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      margin-bottom: 22px;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+    }
+
+    .hero h1 {
+      font-size: clamp(1.9rem, 5.5vw, 3.2rem);
+      color: #fff;
+      font-weight: 700;
+      letter-spacing: -0.4px;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h2 {
+      font-size: clamp(1rem, 2.8vw, 1.3rem);
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.9);
+      margin-bottom: 18px;
+    }
+
+    .hero p {
+      font-size: clamp(0.95rem, 2.2vw, 1.1rem);
+      color: rgba(255, 255, 255, 0.8);
+      max-width: 540px;
+      margin: 0 auto 30px;
+      line-height: 1.75;
+      font-weight: 300;
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      background: var(--cta);
+      color: #fff;
+      padding: 14px 30px;
+      font-size: 0.95rem;
+      border-radius: 50px;
+      font-weight: 600;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 18px rgba(220, 38, 38, 0.35);
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-primary:hover {
+      background: var(--cta-hover);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 26px rgba(220, 38, 38, 0.4);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      border: 2px solid rgba(255, 255, 255, 0.7);
+      color: #fff;
+      padding: 12px 26px;
+      font-size: 0.95rem;
+      border-radius: 50px;
+      font-weight: 500;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      transition: all 0.3s ease;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: #fff;
+    }
+
+    .scroll-indicator {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2;
+      animation: bounce 2.2s infinite;
+    }
+
+    .scroll-indicator a {
+      color: rgba(255, 255, 255, 0.7);
+      text-decoration: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.75rem;
+    }
+
+    .scroll-indicator svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    /* ===== SECTIONS ===== */
+    section {
+      padding: 80px 6%;
+    }
+
+    .section-label {
+      display: inline-block;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+
+    /* ===== ABOUT ===== */
+    .about {
+      text-align: center;
+      background: var(--off-white);
+    }
+
+    .about h3 {
+      color: var(--primary);
+      font-size: clamp(1.6rem, 3.5vw, 2.1rem);
+      margin-bottom: 10px;
+    }
+
+    .about-divider {
+      width: 50px;
+      height: 3px;
+      background: var(--primary);
+      margin: 0 auto 24px;
+      border-radius: 2px;
+    }
+
+    .profile-img {
+      width: 130px;
+      height: 130px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 4px solid var(--primary);
+      margin: 0 auto 24px;
+      display: block;
+      box-shadow: 0 8px 28px rgba(22, 101, 52, 0.18);
+      background: #fff;
+    }
+
+    .about > p {
+      color: var(--gray);
+      font-size: 1.02rem;
+      max-width: 640px;
+      margin: 0 auto;
+      line-height: 1.85;
+      font-weight: 300;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-top: 44px;
+      max-width: 860px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .feature-card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 26px 18px;
+      text-align: center;
+      border: 1px solid #e5e7eb;
+      transition: all 0.3s ease;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 36px rgba(22, 101, 52, 0.1);
+      border-color: #86efac;
+    }
+
+    .feature-icon {
+      width: 46px;
+      height: 46px;
+      background: var(--light-green);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 14px;
+      font-size: 1.35rem;
+    }
+
+    .feature-card h4 {
+      color: var(--primary);
+      font-size: 1rem;
+      margin-bottom: 6px;
+    }
+
+    .feature-card p {
+      color: var(--gray);
+      font-size: 0.88rem;
+      line-height: 1.55;
+      margin: 0;
+    }
+
+    /* ===== LOGIN ===== */
+    #login {
+      background: #fff;
+    }
+
+    .login-card {
+      max-width: 400px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 18px;
+      padding: 36px 30px;
+      box-shadow: 0 10px 40px rgba(22, 101, 52, 0.08);
+      border: 1px solid #e5e7eb;
+      text-align: center;
+    }
+
+    .login-card h2 {
+      color: var(--primary);
+      font-size: 1.4rem;
+      margin-bottom: 8px;
+    }
+
+    .login-card > p {
+      color: var(--gray);
+      font-size: 0.92rem;
+      margin-bottom: 26px;
+      line-height: 1.6;
+    }
+
+    #teacherLoginBtn {
+      background: var(--cta);
+      color: #fff;
+      border: none;
+      padding: 14px 30px;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 16px rgba(220, 38, 38, 0.3);
+    }
+
+    #teacherLoginBtn:hover {
+      background: var(--cta-hover);
+      transform: translateY(-2px);
+    }
+
+    /* ===== LOGIN POPUP ===== */
+    #loginPopup {
+      position: fixed;
+      inset: 0;
+      background: rgba(20, 83, 45, 0.55);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+
+    #loginPopup.hidden {
+      display: none;
+    }
+
+    .popup-box {
+      background: #fff;
+      padding: 30px 26px;
+      border-radius: 16px;
+      width: 90%;
+      max-width: 350px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    }
+
+    .popup-box h3 {
+      color: var(--primary);
+      font-size: 1.2rem;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .popup-box input {
+      width: 100%;
+      padding: 13px 15px;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 10px;
+      margin-bottom: 12px;
+      font-size: 0.95rem;
+      font-family: 'Poppins', sans-serif;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .popup-box input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(22, 101, 52, 0.12);
+    }
+
+    .popup-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 6px;
+    }
+
+    #loginCancel {
+      padding: 10px 18px;
+      border-radius: 10px;
+      background: #f1f5f9;
+      color: #475569;
+      border: none;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    #loginSubmit {
+      padding: 10px 20px;
+      border-radius: 10px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    #loginError {
+      color: #dc2626;
+      font-size: 0.85rem;
+      text-align: center;
+      margin-top: 12px;
+    }
+
+    #loginError.hidden,
+    #loading-spinner.hidden {
+      display: none;
+    }
+
+    #loading-spinner {
+      margin-top: 16px;
+      text-align: center;
+    }
+
+    .fancy-loader {
+      width: 30px;
+      height: 30px;
+      border: 3px solid #e5e7eb;
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      margin: 0 auto 8px;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* ===== CONTACT ===== */
+    .contact {
+      text-align: center;
+      background: var(--off-white);
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .contact h3 {
+      color: var(--primary);
+      font-size: clamp(1.5rem, 3vw, 1.9rem);
+      margin-bottom: 8px;
+    }
+
+    .contact > p {
+      color: var(--gray);
+      font-size: 0.95rem;
+      margin-bottom: 32px;
+      max-width: 440px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .contact-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      max-width: 780px;
+      margin: 0 auto;
+    }
+
+    .contact-item {
+      background: #fff;
+      border-radius: 14px;
+      padding: 22px 16px;
+      border: 1px solid #e5e7eb;
+      transition: all 0.3s ease;
+    }
+
+    .contact-item:hover {
+      border-color: #86efac;
+      box-shadow: 0 8px 26px rgba(22, 101, 52, 0.08);
+    }
+
+    .contact-item .icon {
+      font-size: 1.4rem;
+      margin-bottom: 8px;
+    }
+
+    .contact-item .label {
+      display: block;
+      font-size: 0.78rem;
+      color: var(--gray);
+      margin-bottom: 4px;
+    }
+
+    .contact-item a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.92rem;
+    }
+
+    /* ===== FOOTER ===== */
+    footer {
+      background: var(--primary-dark);
+      color: #fff;
+      text-align: center;
+      padding: 36px 6%;
+    }
+
+    footer h4 {
+      font-size: 1.1rem;
+      margin-bottom: 4px;
+    }
+
+    footer p {
+      color: rgba(255, 255, 255, 0.55);
+      font-size: 0.88rem;
+    }
+
+    footer .copy {
+      margin-top: 18px;
+      font-size: 0.78rem;
+      color: rgba(255, 255, 255, 0.35);
+    }
+
+    /* ===== ANIMATIONS ===== */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(28px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes bounce {
+      0%, 20%, 50%, 80%, 100% { transform: translateX(-50%) translateY(0); }
+      40% { transform: translateX(-50%) translateY(-9px); }
+      60% { transform: translateX(-50%) translateY(-4px); }
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 600px) {
+      .logo-text .name {
+        font-size: 0.95rem;
+      }
+      .logo-text .tag {
+        display: none;
+      }
+      .logo-area img {
+        width: 38px;
+        height: 38px;
+      }
+      .hero-buttons {
+        flex-direction: column;
+        align-items: center;
+      }
+      .btn-primary,
+      .btn-secondary {
+        width: 100%;
+        max-width: 260px;
+        justify-content: center;
+      }
+      section {
+        padding: 60px 5%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===== NAVBAR ===== -->
+  <nav class="navbar" id="navbar">
+    <a href="#home" class="logo-area">
+      <img
+        src="https://irelkjvppoisvjpopdpb.supabase.co/storage/v1/object/public/logo-images/wisechoice.jpg"
+        alt="WCA Logo"
+      >
+      <div class="logo-text">
+        <span class="name">Wise Choice Academy</span>
+        <span class="tag">Passion for Excellence</span>
+      </div>
+    </a>
+
+    <button class="hamburger" id="hamburger" aria-label="Open menu">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+  </nav>
+
+  <!-- Overlay -->
+  <div class="nav-overlay" id="navOverlay"></div>
+
+  <!-- Side Menu -->
+  <div class="nav-menu" id="navMenu">
+    <div class="nav-menu-header">
+      <span class="menu-title">Menu</span>
+      <button class="nav-close" id="navClose" aria-label="Close menu">×</button>
+    </div>
+    <div class="nav-links">
+      <a href="#home">Home</a>
+      <a href="#about">About</a>
+      <a href="#login">Login</a>
+      <a href="#contact">Contact</a>
+    </div>
+    <div class="nav-menu-footer">
+      CampusOS • School Portal
+    </div>
+  </div>
+
+  <!-- ===== HERO ===== -->
+  <section id="home" class="hero">
+    <div class="hero-content">
+      <span class="hero-badge">🎓 Passion for Excellence</span>
+      <h1>Wise Choice Academy</h1>
+      <h2>Where every child is guided to excel</h2>
+      <p>
+        A learning community built on discipline, care, and high standards.
+        We help students grow in knowledge, character, and confidence — preparing them for the future with a true passion for excellence.
+      </p>
+      <div class="hero-buttons">
+        <a href="#login" class="btn-primary">Login to Portal</a>
+        <a href="#about" class="btn-secondary">Learn More</a>
+      </div>
+    </div>
+
+    <div class="scroll-indicator">
+      <a href="#about">
+        <span>Scroll</span>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+        </svg>
+      </a>
+    </div>
+  </section>
+
+  <!-- ===== ABOUT ===== -->
+  <section id="about" class="about">
+    <span class="section-label">Who We Are</span>
+    <h3>About Us</h3>
+    <div class="about-divider"></div>
+
+    <img
+      src="https://irelkjvppoisvjpopdpb.supabase.co/storage/v1/object/public/logo-images/wisechoice.jpg"
+      alt="Wise Choice Academy Logo"
+      class="profile-img"
+    >
+
+    <p>
+      Welcome to Wise Choice Academy, a school committed to raising children who excel in learning and in life.
+      Our teachers guide every learner with care, structure, and high expectations.
+      We focus on clear foundations in literacy and numeracy, sound character, and the confidence to take the next step.
+      At Wise Choice Academy, excellence is not a slogan — it is the standard we work toward every day.
+    </p>
+
+    <div class="features">
+      <div class="feature-card">
+        <div class="feature-icon">📚</div>
+        <h4>Strong Academics</h4>
+        <p>Solid teaching across core subjects with clear goals for every learner.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🌱</div>
+        <h4>Character & Discipline</h4>
+        <p>Respect, responsibility, and good habits formed alongside schoolwork.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⭐</div>
+        <h4>All-Round Growth</h4>
+        <p>Space for creativity, activity, and leadership beyond the classroom.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== LOGIN ===== -->
+  <section id="login">
+    <div class="login-card">
+      <h2>Portal Access</h2>
+      <p>Login to access features for administrators, teachers and students.</p>
+      <button id="teacherLoginBtn">
+        <span>🚀</span>
+        Login to Portal
+      </button>
+    </div>
+  </section>
+
+  <!-- ===== LOGIN POPUP ===== -->
+  <div id="loginPopup" class="hidden">
+    <div class="popup-box">
+      <h3>Login</h3>
+      <input type="email" id="loginEmail" placeholder="Email or Student ID" />
+      <input type="password" id="loginPassword" placeholder="Password" />
+      <div class="popup-actions">
+        <button id="loginCancel">Cancel</button>
+        <button id="loginSubmit">Login</button>
+      </div>
+      <div id="loading-spinner" class="hidden">
+        <div class="fancy-loader"></div>
+        <div style="color:#166534; font-weight:500; font-size:0.9rem;">Loading...</div>
+      </div>
+      <p id="loginError" class="hidden">Invalid credentials</p>
+    </div>
+  </div>
+
+  <!-- ===== CONTACT ===== -->
+  <section id="contact" class="contact">
+    <span class="section-label">Get In Touch</span>
+    <h3>Contact Us</h3>
+    <p>We would love to hear from you. Reach out through any of the channels below.</p>
+
+    <div class="contact-grid">
+      <div class="contact-item">
+        <div class="icon">📞</div>
+        <span class="label">Phone</span>
+        <a href="tel:+2348036742167">+234 803 674 2167</a>
+      </div>
+      <div class="contact-item">
+        <div class="icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="#25D366" viewBox="0 0 24 24">
+            <path d="M20.52 3.48A11.78 11.78 0 0012.04 0C5.42 0 .04 5.38.04 12c0 2.11.55 4.18 1.59 6.01L0 24l6.15-1.61A11.94 11.94 0 0012.04 24c6.62 0 12-5.38 12-12 0-3.21-1.25-6.23-3.52-8.52zM12.04 21.8c-1.82 0-3.59-.49-5.13-1.41l-.37-.22-3.65.96.97-3.56-.24-.37A9.73 9.73 0 012.3 12c0-5.37 4.37-9.74 9.74-9.74s9.74 4.37 9.74 9.74-4.37 9.8-9.74 9.8zm5.34-7.3c-.29-.15-1.73-.85-2-.95-.27-.1-.47-.15-.67.15-.2.29-.77.95-.94 1.15-.17.2-.35.22-.64.07-.29-.15-1.23-.45-2.34-1.43-.87-.77-1.46-1.72-1.63-2.01-.17-.29-.02-.45.13-.6.13-.13.29-.35.44-.52.15-.17.2-.29.3-.49.1-.2.05-.37-.02-.52-.07-.15-.67-1.61-.92-2.21-.24-.58-.48-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.29-1.04 1.02-1.04 2.49s1.07 2.89 1.22 3.09c.15.2 2.09 3.19 5.06 4.47.71.31 1.27.49 1.71.63.72.23 1.37.2 1.88.12.57-.09 1.73-.71 1.98-1.4.24-.69.24-1.28.17-1.4-.07-.12-.27-.2-.57-.35z"/>
+          </svg>
+        </div>
+        <span class="label">WhatsApp</span>
+        <a href="https://wa.me/2348036742167" target="_blank">+234 803 674 2167</a>
+      </div>
+      <div class="contact-item">
+        <div class="icon">✉️</div>
+        <span class="label">Email</span>
+        <a href="mailto:wisdomefam60@gmail.com">wisdomefam60@gmail.com</a>
+      </div>
+      <div class="contact-item">
+        <div class="icon">📍</div>
+        <span class="label">Address</span>
+        <a href="#">55 Ehwerhe Agbarho, Delta State</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FOOTER ===== -->
+  <footer>
+    <h4>CampusOS</h4>
+    <p>The School Operating System</p>
+    <p class="copy">© 2026 CampusOS. All rights reserved.</p>
+  </footer>
+
+  <script>
+    // ===== MOBILE MENU =====
+    const hamburger = document.getElementById('hamburger');
+    const navMenu = document.getElementById('navMenu');
+    const navOverlay = document.getElementById('navOverlay');
+    const navClose = document.getElementById('navClose');
+
+    function openMenu() {
+      navMenu.classList.add('active');
+      navOverlay.classList.add('active');
+      hamburger.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeMenu() {
+      navMenu.classList.remove('active');
+      navOverlay.classList.remove('active');
+      hamburger.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
+    hamburger.addEventListener('click', openMenu);
+    navClose.addEventListener('click', closeMenu);
+    navOverlay.addEventListener('click', closeMenu);
+
+    document.querySelectorAll('.nav-links a, .logo-area, .hero-buttons a, .scroll-indicator a').forEach(link => {
+      link.addEventListener('click', (e) => {
+        const href = link.getAttribute('href');
+        if (href && href.startsWith('#')) {
+          e.preventDefault();
+          const target = document.getElementById(href.slice(1));
+          if (target) {
+            target.scrollIntoView({ behavior: 'smooth' });
+            closeMenu();
+          }
+        }
+      });
+    });
+
+    const navbar = document.getElementById('navbar');
+    window.addEventListener('scroll', () => {
+      navbar.classList.toggle('scrolled', window.scrollY > 15);
+    });
+
+    // ===== SUPABASE =====
+    const SUPABASE_URL = "https://irelkjvppoisvjpopdpb.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlyZWxranZwcG9pc3ZqcG9wZHBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYzNTUwMDAsImV4cCI6MjA4MTkzMTAwMH0.osF4wEZ-zm3cXScD1W8gMOkG81O2TbDJ8L47YvIIryw";
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    function getLoginFriendlyError(error) {
+      if (!error) return "Something went wrong. Please try again.";
+
+      const rawMessage =
+        error.message ||
+        error.error ||
+        error.msg ||
+        "";
+
+      const msg = rawMessage.toLowerCase();
+
+      if (
+        msg.includes("invalid login credentials") ||
+        msg.includes("invalid credentials") ||
+        msg.includes("email not confirmed") ||
+        error.status === 400
+      ) {
+        return "Incorrect email/Student ID or password. Please try again.";
+      }
+
+      if (
+        msg.includes("user not found") ||
+        msg.includes("no user found")
+      ) {
+        return "No account found with these details.";
+      }
+
+      if (
+        msg.includes("too many requests") ||
+        msg.includes("rate limit") ||
+        error.status === 429
+      ) {
+        return "Too many login attempts. Please wait a moment and try again.";
+      }
+
+      if (
+        msg.includes("failed to fetch") ||
+        msg.includes("network") ||
+        msg.includes("connection") ||
+        msg.includes("offline")
+      ) {
+        return "Network connection lost. Please check your internet and try again.";
+      }
+
+      if (
+        msg.includes("role") ||
+        msg.includes("permission") ||
+        msg.includes("not authorized")
+      ) {
+        return "Your account does not have access to the portal.";
+      }
+
+      return rawMessage || "Unable to sign in. Please try again.";
+    }
+
+    function showLoginError(message) {
+      const loginError = document.getElementById("loginError");
+      if (!loginError) return;
+      loginError.textContent = message;
+      loginError.classList.remove("hidden");
+    }
+
+    function clearLoginError() {
+      const loginError = document.getElementById("loginError");
+      if (!loginError) return;
+      loginError.textContent = "";
+      loginError.classList.add("hidden");
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const loginSubmit = document.getElementById("loginSubmit");
+      const loginPopup = document.getElementById("loginPopup");
+      const loginCancel = document.getElementById("loginCancel");
+      const loginEmail = document.getElementById("loginEmail");
+      const loginPassword = document.getElementById("loginPassword");
+      const teacherLoginBtn = document.getElementById("teacherLoginBtn");
+
+      function openLoginPopup() {
+        loginPopup.classList.remove("hidden");
+        loginEmail.value = "";
+        loginPassword.value = "";
+        clearLoginError();
+        loginEmail.focus();
+      }
+
+      if (teacherLoginBtn) teacherLoginBtn.addEventListener("click", openLoginPopup);
+      if (loginCancel) loginCancel.addEventListener("click", () => loginPopup.classList.add("hidden"));
+
+      loginPopup.addEventListener("click", (e) => {
+        if (e.target === loginPopup) loginPopup.classList.add("hidden");
+      });
+
+      if (loginSubmit) {
+        loginSubmit.addEventListener("click", async () => {
+          const input = loginEmail.value.trim();
+          const password = loginPassword.value.trim();
+
+          clearLoginError();
+
+          if (!input || !password) {
+            showLoginError("Please enter your email / Student ID and password.");
+            return;
+          }
+
+          const isStudent = !input.includes("@");
+          const email = isStudent
+            ? `${input.toLowerCase()}@student.school.local`
+            : input;
+
+          try {
+            showSpinner("Signing you in...");
+            localStorage.setItem("schoolHomepage", window.location.href.split('#')[0]);
+
+            const { data, error } = await supabaseClient.auth.signInWithPassword({
+              email,
+              password
+            });
+
+            if (error || !data?.user) {
+              hideSpinner();
+              showLoginError(getLoginFriendlyError(error));
+              return;
+            }
+
+            const { data: role, error: roleError } =
+              await supabaseClient.rpc("current_user_role");
+
+            if (roleError) {
+              hideSpinner();
+              showLoginError(getLoginFriendlyError(roleError) || "Unable to verify your role. Please contact the school.");
+              return;
+            }
+
+            showSpinner("Loading dashboard...");
+
+            switch (role) {
+              case "admin":
+              case "teacher":
+              case "student":
+                window.location.href = "dashboard.html";
+                return;
+              default:
+                hideSpinner();
+                showLoginError("Your account has no role assigned. Please contact the school administrator.");
+            }
+          } catch (err) {
+            console.error("Login error:", err);
+            hideSpinner();
+            showLoginError(getLoginFriendlyError(err));
+          }
+        });
+      }
+    });
+
+    const spinner = document.getElementById("loading-spinner");
+    function showSpinner(message = "Loading...") {
+      if (!spinner) return;
+      spinner.querySelector("div:last-child").textContent = message;
+      spinner.classList.remove("hidden");
+    }
+    function hideSpinner() {
+      spinner?.classList.add("hidden");
+    }
+  </script>
+
+</body>
+</html>
